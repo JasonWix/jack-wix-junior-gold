@@ -7,7 +7,8 @@
     "games_complete": 4,
     "pins_from_cut": -27,
     "needed_average": 194.5,
-    "target_final_average": 190
+    "target_final_average": 190,
+    "field_size": 464
   },
   "blocks": [
     {
@@ -66,7 +67,8 @@
       "hometown": "Deatsville, AL",
       "games_complete": 4,
       "total": 792,
-      "average": 198.0
+      "average": 198.0,
+      "blocks": []
     },
     {
       "rank": 88,
@@ -75,7 +77,8 @@
       "hometown": "Elmore, AL",
       "games_complete": 4,
       "total": 779,
-      "average": 194.75
+      "average": 194.75,
+      "blocks": []
     },
     {
       "rank": 260,
@@ -84,7 +87,19 @@
       "hometown": "Cullman, AL",
       "games_complete": 4,
       "total": 706,
-      "average": 176.5
+      "average": 176.5,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            132,
+            190,
+            163,
+            221
+          ],
+          "total": 706
+        }
+      ]
     }
   ],
   "site": {
@@ -97,7 +112,8 @@
         "gold": "#F8C322",
         "sky": "#5EAED0",
         "green": "#43B929"
-      }
+      },
+      "banner": "assets/jack-wix-banner.png"
     }
   },
   "source_status": {
@@ -187,5 +203,26 @@
     "complete_after": "2026-07-14T00:00:00-05:00",
     "partial_note": "Additional Alabama U18 Boys are scheduled to bowl later today. This list will expand as Bowl.com posts their scores and will be complete after today's squads.",
     "complete_note": "The Alabama U18 Boys list is complete for the field and reflects the latest Bowl.com report."
+  },
+  "field_size": {
+    "current_report": 464,
+    "is_final": false,
+    "reported_squads": [
+      1,
+      2,
+      11,
+      12
+    ],
+    "expected_squads": [
+      1,
+      2,
+      11,
+      12,
+      21,
+      22,
+      31,
+      32
+    ],
+    "note": "This is the number of U18B participants in the latest published Round 1 report. It will increase as the remaining Day 1 squads are posted."
   }
 }

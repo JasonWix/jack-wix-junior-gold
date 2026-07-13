@@ -1,10 +1,26 @@
+let dashboardData = null;
+
 const fmt = new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago",timeZoneName:"short"});
 
 async function load(){
   const res = await fetch(`data/dashboard.json?v=${Date.now()}`,{cache:"no-store"});
   const d = await res.json();
+  dashboardData = d;
 
-  setText("position", d.current.position ? `#${d.current.position}` : "—");
+  const fieldSize=d.field_size?.current_report ?? d.current.field_size ?? null;
+  const fieldFinal=Boolean(d.field_size?.is_final);
+  if(d.current.position && fieldSize){
+    setText("position", `#${d.current.position} of ${fieldSize}`);
+    setText(
+      "field-size-note",
+      fieldFinal
+        ? "Total U18B participants"
+        : "Participants posted in the latest report; final field updates after remaining Day 1 squads"
+    );
+  }else{
+    setText("position", d.current.position ? `#${d.current.position}` : "—");
+    setText("field-size-note", "U18B participant count unavailable");
+  }
   setText("total", d.current.total ?? "—");
   setText("average", d.current.average?.toFixed(2) ?? "—");
   setText("games-complete", `${d.current.games_complete}/16`);
@@ -179,19 +195,99 @@ function renderAlabama(bowlers,jackTotal){
     body.innerHTML='<tr><td colspan="7" class="muted">No Alabama bowlers found in the latest report.</td></tr>';
     return;
   }
-  body.innerHTML=bowlers.map(b=>{
-    const diff=b.name.toLowerCase()==="jack wix" ? 0 : b.total-jackTotal;
+
+  body.innerHTML=bowlers.map((b,index)=>{
+    const isJack=b.name.toLowerCase()==="jack wix";
+    const diff=isJack ? 0 : Number(b.total)-Number(jackTotal);
     const diffText=diff===0 ? "Jack" : `${diff>0?"+":""}${diff}`;
-    return `<tr class="${b.name.toLowerCase()==="jack wix"?"jack":""}">
-      <td class="rank">#${b.rank}${b.tied?"T":""}</td>
-      <td class="bowler">${b.name}${b.name.toLowerCase()==="jack wix"?" ⭐":""}</td>
-      <td>${b.hometown}</td>
-      <td>${b.games_complete}</td>
-      <td>${b.total}</td>
-      <td>${Number(b.average).toFixed(2)}</td>
-      <td class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
+
+    return `<tr class="${isJack?"jack":""}">
+      <td class="rank" data-label="Rank">#${b.rank}${b.tied?"T":""}</td>
+      <td class="bowler" data-label="Bowler">
+        <button class="bowler-name-button" type="button" data-bowler-index="${index}" aria-label="View tournament details for ${escapeHtml(b.name)}">
+          ${escapeHtml(b.name)}${isJack?" ⭐":""}
+        </button>
+      </td>
+      <td data-label="Hometown">${escapeHtml(b.hometown)}</td>
+      <td data-label="Games">${b.games_complete}</td>
+      <td data-label="Total">${b.total}</td>
+      <td data-label="Average">${Number(b.average).toFixed(2)}</td>
+      <td data-label="vs. Jack" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
     </tr>`;
   }).join("");
+
+  body.querySelectorAll(".bowler-name-button").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const bowler=bowlers[Number(button.dataset.bowlerIndex)];
+      openBowlerDialog(bowler,jackTotal);
+    });
+  });
+}
+
+function openBowlerDialog(bowler,jackTotal){
+  const dialog=document.getElementById("bowler-dialog");
+  if(!dialog || !bowler) return;
+
+  const isJack=bowler.name.toLowerCase()==="jack wix";
+  const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
+
+  setText("bowler-dialog-title",bowler.name);
+  setText("bowler-dialog-hometown",bowler.hometown || "Alabama");
+
+  const stats=[
+    ["Overall rank",`#${bowler.rank}${bowler.tied?"T":""}${dashboardData?.field_size?.current_report ? ` of ${dashboardData.field_size.current_report}` : ""}`],
+    ["Games complete",bowler.games_complete ?? "—"],
+    ["Total pins",bowler.total ?? "—"],
+    ["Average",bowler.average == null ? "—" : Number(bowler.average).toFixed(2)],
+    ["Compared with Jack",isJack ? "Jack" : `${diff>0?"+":""}${diff} pins`]
+  ];
+
+  document.getElementById("bowler-dialog-stats").innerHTML=stats.map(([label,value])=>`
+    <div class="bowler-stat">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `).join("");
+
+  const blocks=Array.isArray(bowler.blocks) ? bowler.blocks : [];
+  const rounds=document.getElementById("bowler-dialog-rounds");
+
+  if(blocks.length){
+    rounds.innerHTML=blocks.map((block,index)=>{
+      const games=Array.isArray(block.games) ? block.games : [];
+      const total=block.total ?? (games.length ? games.reduce((sum,score)=>sum+Number(score),0) : null);
+      return `<article class="bowler-round-card">
+        <h4>Round ${block.round || index+1}</h4>
+        <div class="games">${games.length ? games.map(score=>`<span class="game">${score}</span>`).join("") : '<span class="muted">Scores not posted</span>'}</div>
+        <p>${total == null ? "Pending" : `${total} pins · ${(total/games.length).toFixed(2)} avg.`}</p>
+      </article>`;
+    }).join("");
+  }else if(Array.isArray(bowler.scores) && bowler.scores.length){
+    rounds.innerHTML=`<article class="bowler-round-card">
+      <h4>Latest posted block</h4>
+      <div class="games">${bowler.scores.map(score=>`<span class="game">${score}</span>`).join("")}</div>
+      <p>${bowler.scores.reduce((sum,score)=>sum+Number(score),0)} pins</p>
+    </article>`;
+  }else{
+    rounds.innerHTML='<p class="muted">Individual game scores are not available in the current report snapshot. Rank, total, and average are shown above.</p>';
+  }
+
+  if(typeof dialog.showModal==="function"){
+    dialog.showModal();
+  }else{
+    dialog.setAttribute("open","");
+  }
+}
+
+function setupBowlerDialog(){
+  const dialog=document.getElementById("bowler-dialog");
+  const close=document.getElementById("bowler-dialog-close");
+  if(!dialog || !close) return;
+
+  close.addEventListener("click",()=>dialog.close());
+  dialog.addEventListener("click",event=>{
+    if(event.target===dialog) dialog.close();
+  });
 }
 
 function renderLastQualifier(schedule, blocks){
@@ -239,4 +335,5 @@ function startCountdown(schedule){
   };
   update(); setInterval(update,1000);
 }
+setupBowlerDialog();
 load().catch(err=>{console.error(err);setText("next-title","Unable to load dashboard data")});
