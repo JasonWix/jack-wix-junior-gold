@@ -103,3 +103,15 @@ The header, statistics, schedule, Alabama leaderboard, and equipment cards now r
 Jack's position is displayed as `rank of field`, for example `#260 of 464`.
 
 The collector counts unique competitors in the latest official U18 Boys report. While Day 1 results are still being posted, the dashboard labels the number as the currently published field. Once all eight U18 Boys squads appear in the Round 1 report, the label automatically changes to `Total U18B participants`.
+
+
+## Smart Bowl.com check schedule
+
+The GitHub Actions updater uses a date-specific tournament schedule in Central Time:
+
+- Every 5 minutes during Jack's bowling and likely result-posting windows.
+- Every 15 minutes during active tournament hours between squads.
+- Hourly overnight during qualifying.
+- The workflow can still be run manually from the Actions tab at any time.
+
+GitHub cron expressions use UTC, so the workflow file already includes the correct five-hour conversion for Minnesota daylight time.
