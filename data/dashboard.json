@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-07-13T18:24:15.018358-05:00",
+  "updated_at": "2026-07-13T15:46:39.657134-05:00",
   "current": {
     "position": 260,
-    "total": 324,
-    "average": 81.0,
+    "total": 706,
+    "average": 176.5,
     "games_complete": 4,
     "pins_from_cut": -27,
-    "needed_average": 226.3,
+    "needed_average": 194.5,
     "target_final_average": 190,
     "field_size": 464
   },
@@ -14,12 +14,12 @@
     {
       "round": 1,
       "games": [
-        1,
-        1,
         132,
-        190
+        190,
+        163,
+        221
       ],
-      "total": 324
+      "total": 706
     },
     {
       "round": 2,
@@ -61,67 +61,45 @@
   ],
   "alabama_bowlers": [
     {
+      "rank": 70,
+      "tied": true,
       "name": "Ryan Best",
       "hometown": "Deatsville, AL",
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            2,
-            1,
-            205,
-            183
-          ],
-          "total": 391
-        }
-      ],
-      "rank": 70,
-      "tied": false,
       "games_complete": 4,
       "total": 792,
-      "average": 198.0
+      "average": 198.0,
+      "blocks": []
     },
     {
+      "rank": 88,
+      "tied": true,
       "name": "Seth Wilson",
       "hometown": "Elmore, AL",
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            2,
-            1,
-            190,
-            193
-          ],
-          "total": 386
-        }
-      ],
-      "rank": 88,
-      "tied": false,
       "games_complete": 4,
       "total": 779,
-      "average": 194.75
+      "average": 194.75,
+      "blocks": []
     },
     {
+      "rank": 260,
+      "tied": true,
       "name": "Jack Wix",
       "hometown": "Cullman, AL",
+      "games_complete": 4,
+      "total": 706,
+      "average": 176.5,
       "blocks": [
         {
           "round": 1,
           "games": [
-            1,
-            1,
             132,
-            190
+            190,
+            163,
+            221
           ],
-          "total": 324
+          "total": 706
         }
-      ],
-      "rank": 260,
-      "tied": false,
-      "games_complete": 4,
-      "total": 944,
-      "average": 236.0
+      ]
     }
   ],
   "site": {
@@ -139,12 +117,12 @@
     }
   },
   "source_status": {
-    "status": "delayed",
+    "status": "current",
     "last_updated_at": "2026-07-13T14:37:00-05:00",
-    "last_checked_at": "2026-07-13T18:24:15.018358-05:00",
+    "last_checked_at": "2026-07-13T15:46:39.657134-05:00",
     "report": "Qualifying Round 1",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
-    "age_minutes": 227
+    "age_minutes": 69
   },
   "equipment": {
     "handedness": "Two-Handed Right",
@@ -215,9 +193,9 @@
     "official": false,
     "label": "Placeholder estimate",
     "title": "There is no official cut yet",
-    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown are temporary planning aids and may move substantially as more squads and rounds are posted.",
-    "gap_basis": "Temporary comparison to 192nd place in the Round 1 report",
-    "needed_average_basis": "Temporary calculation using a fixed 190.0 final-average target",
+    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown above are temporary planning aids and may move substantially as more squads and rounds are posted.",
+    "gap_basis": "Temporary comparison using the dashboard's original Round 1 cut-place assumption",
+    "needed_average_basis": "Temporary calculation using a fixed 190.0 final-average planning target",
     "warning": "Do not present these values as the official advancement cut."
   },
   "alabama_status": {
@@ -245,6 +223,6 @@
       31,
       32
     ],
-    "note": "Participants posted in the latest Round 1 report. The count will increase as remaining Day 1 squads are posted."
+    "note": "This is the number of U18B participants in the latest published Round 1 report. It will increase as the remaining Day 1 squads are posted."
   }
 }

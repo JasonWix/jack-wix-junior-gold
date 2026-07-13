@@ -37,29 +37,44 @@ def parse_reported_u18b_squads(text):
 
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
 
+REQUEST_HEADERS={
+    "User-Agent":"Mozilla/5.0 (compatible; JackWixJuniorGoldDashboard/1.0)",
+    "Accept":"text/html,application/pdf;q=0.9,*/*;q=0.8"
+}
+
 def discover_pdf_links():
-    html=requests.get(RESULTS_PAGE,timeout=30).text
-    soup=BeautifulSoup(html,"html.parser")
+    """Discover official links, while retaining stable URLs if Bowl.com is unavailable."""
     links={}
-    u18=soup.find(string=re.compile(r"U18 DIVISION",re.I))
-    scope=u18.parent.parent if u18 else soup
-    for a in scope.find_all("a",href=True):
-        txt=" ".join(a.get_text(" ",strip=True).split())
-        href=a["href"]
-        if "Qualifying_Round" in href and "U18Boys" in href:
-            m=re.search(r"Round%20?(\d)|Round(\d)",href,re.I)
-            if m:
-                n=int(next(x for x in m.groups() if x))
-                links[n]=href
-    # Stable fallback URLs
-    for n in range(1,5):
-        links.setdefault(n,f"https://scores.bowl.com/2026-JG/Qualifying_Round%20{n}_U18Boys.pdf?v=new")
+    try:
+        response=requests.get(RESULTS_PAGE,headers=REQUEST_HEADERS,timeout=30)
+        response.raise_for_status()
+        soup=BeautifulSoup(response.text,"html.parser")
+        u18=soup.find(string=re.compile(r"U18 DIVISION",re.I))
+        scope=u18.parent.parent if u18 else soup
+        for anchor in scope.find_all("a",href=True):
+            href=anchor["href"]
+            if "Qualifying_Round" not in href or "U18Boys" not in href:
+                continue
+            match=re.search(r"Round%20?(\d)|Round(\d)",href,re.I)
+            if match:
+                round_number=int(next(value for value in match.groups() if value))
+                links[round_number]=href
+    except requests.RequestException as exc:
+        print(f"Results page discovery failed; using stable report URLs: {exc}")
+
+    for round_number in range(1,5):
+        links.setdefault(
+            round_number,
+            f"https://scores.bowl.com/2026-JG/Qualifying_Round%20{round_number}_U18Boys.pdf?v=new"
+        )
     return links
 
 def extract_pdf(url):
-    r=requests.get(url,timeout=45)
-    r.raise_for_status()
-    with pdfplumber.open(io.BytesIO(r.content)) as pdf:
+    response=requests.get(url,headers=REQUEST_HEADERS,timeout=45)
+    response.raise_for_status()
+    if not response.content.startswith(b"%PDF"):
+        raise ValueError(f"Bowl.com returned non-PDF content for {url}")
+    with pdfplumber.open(io.BytesIO(response.content)) as pdf:
         return "\n".join(page.extract_text() or "" for page in pdf.pages)
 
 
@@ -211,16 +226,25 @@ def main():
             all_games.extend(games)
         except Exception as exc:
             print(f"Round {n}: {exc}")
-    total=sum(all_games); count=len(all_games)
+    # Recalculate from all saved blocks, including previously posted rounds that may
+    # be temporarily unavailable during this check. A partial Bowl.com outage must
+    # never reset Jack's dashboard totals to zero.
+    saved_games=[]
+    for block in data.get("blocks",[]):
+        saved_games.extend(block.get("games") or [])
+
+    total=sum(saved_games)
+    count=len(saved_games)
     current=data["current"]
-    current["total"]=total
-    current["games_complete"]=count
-    current["average"]=round(total/count,2) if count else None
-    if cut_total is not None:
-        current["pins_from_cut"]=total-cut_total
-    target=190*16
-    remaining=16-count
-    current["needed_average"]=round((target-total)/remaining,1) if remaining else None
+    if count:
+        current["total"]=total
+        current["games_complete"]=count
+        current["average"]=round(total/count,2)
+        if cut_total is not None:
+            current["pins_from_cut"]=total-cut_total
+        target=190*16
+        remaining=16-count
+        current["needed_average"]=round((target-total)/remaining,1) if remaining else None
     if field_size:
         current["field_size"]=field_size
         field_is_final=EXPECTED_U18B_SQUADS.issubset(reported_u18b_squads)

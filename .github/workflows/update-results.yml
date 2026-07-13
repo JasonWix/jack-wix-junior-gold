@@ -1,87 +1,94 @@
 name: Update Junior Gold dashboard
+
 on:
+  workflow_dispatch:
   schedule:
+    # GitHub schedules use UTC. Minnesota is CDT (UTC-5) in July.
+
     # Monday, July 13 — Round 1 at 7:00 AM CT
-    # 6:00–10:00 AM CT: every 5 minutes
     - cron: "*/5 11-14 13 7 *"
-    # 10:00 AM–10:00 PM CT: every 15 minutes
     - cron: "*/15 15-23 13 7 *"
     - cron: "*/15 0-2 14 7 *"
 
     # Tuesday, July 14 — Round 2 at 8:30 PM CT
-    # Daytime: every 15 minutes
     - cron: "*/15 11-23 14 7 *"
-    # 7:30 PM–11:59 PM CT: every 5 minutes
     - cron: "*/5 0-4 15 7 *"
 
     # Wednesday, July 15 — Round 3 at 4:00 PM CT
-    # 6:00 AM–3:00 PM CT: every 15 minutes
     - cron: "*/15 11-19 15 7 *"
-    # 3:00–8:00 PM CT: every 5 minutes
     - cron: "*/5 20-23 15 7 *"
     - cron: "*/5 0-1 16 7 *"
-    # 8:00–10:00 PM CT: every 15 minutes
     - cron: "*/15 2-3 16 7 *"
 
     # Thursday, July 16 — Round 4 at 11:30 AM CT
-    # 6:00–10:30 AM CT: every 15 minutes
     - cron: "*/15 11-15 16 7 *"
-    # 10:30 AM–4:00 PM CT: every 5 minutes
     - cron: "*/5 16-20 16 7 *"
-    # 4:00–10:00 PM CT: every 15 minutes
     - cron: "*/15 21-23 16 7 *"
     - cron: "*/15 0-3 17 7 *"
 
-    # Overnight fallback during qualifying: hourly
+    # Overnight fallback during qualifying
     - cron: "0 4-10 13-16 7 *"
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
+
 permissions:
   contents: write
 
 concurrency:
   group: junior-gold-dashboard-update
   cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - run: python scripts/update_results.py
-      - name: Commit changed data
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh and publish dashboard data
+        shell: bash
         run: |
-          if git diff --quiet; then
-            echo "No dashboard changes detected."
-            exit 0
-          fi
+          set -euo pipefail
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/dashboard.json
-          git commit -m "Update Junior Gold results"
-
-          # Another workflow or a manual commit may update main while this job is running.
-          # Rebase our generated data commit onto the latest main before pushing.
+          # Start from the newest main branch, regenerate the dashboard, and push.
+          # If main changes during the run, start over from the new main and retry.
           for attempt in 1 2 3; do
-            echo "Push attempt $attempt of 3"
+            echo "Update attempt $attempt of 3"
 
             git fetch origin main
-            git rebase origin/main
+            git reset --hard origin/main
+
+            python scripts/update_results.py
+
+            if git diff --quiet -- data/dashboard.json; then
+              echo "No dashboard changes detected."
+              exit 0
+            fi
+
+            git add data/dashboard.json
+            git commit -m "Update Junior Gold results"
 
             if git push origin HEAD:main; then
               echo "Dashboard update pushed successfully."
               exit 0
             fi
 
-            echo "Push was rejected because main changed again. Retrying..."
+            echo "Main changed before the push completed. Retrying from the newest main..."
             sleep $((attempt * 5))
           done
 
-          echo "Unable to push after 3 attempts."
+          echo "Unable to publish dashboard data after 3 attempts."
           exit 1

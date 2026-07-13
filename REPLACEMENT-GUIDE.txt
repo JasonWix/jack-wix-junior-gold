@@ -1,0 +1,38 @@
+JACK WIX JUNIOR GOLD DASHBOARD — COMPLETE REPLACEMENT
+
+This package contains the complete repository, including the hidden .github folder.
+
+SAFE REPLACEMENT STEPS
+
+1. Open the existing repository in GitHub Desktop.
+2. Select Repository > Show in Finder.
+3. Press Command + Shift + . to show hidden files.
+4. DO NOT delete the existing .git folder.
+5. Delete these existing repository items:
+   .github
+   assets
+   data
+   scripts
+   .gitignore
+   .nojekyll
+   README.md
+   app.js
+   index.html
+   requirements.txt
+   styles.css
+6. Copy every item from this replacement folder into the existing repository folder.
+7. Return to GitHub Desktop.
+8. Commit with:
+   Replace dashboard with validated complete build
+9. Click Push origin.
+10. In GitHub, open Actions > Update Junior Gold dashboard > Run workflow.
+
+The replacement fixes:
+- GitHub push conflicts caused by concurrent or manual commits
+- Duplicate workflow schedules
+- Partial Bowl.com failures resetting data
+- Results-page discovery failures
+- Responsive layout and banner presentation
+- Clickable Alabama bowler profiles
+- U18B field-size display
+- GitHub Pages deployment configuration
