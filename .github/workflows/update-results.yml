@@ -1,10 +1,48 @@
 name: Update Junior Gold dashboard
 on:
   schedule:
+    # Monday, July 13 — Round 1 at 7:00 AM CT
+    # 6:00–10:00 AM CT: every 5 minutes
+    - cron: "*/5 11-14 13 7 *"
+    # 10:00 AM–10:00 PM CT: every 15 minutes
+    - cron: "*/15 15-23 13 7 *"
+    - cron: "*/15 0-2 14 7 *"
+
+    # Tuesday, July 14 — Round 2 at 8:30 PM CT
+    # Daytime: every 15 minutes
+    - cron: "*/15 11-23 14 7 *"
+    # 7:30 PM–11:59 PM CT: every 5 minutes
+    - cron: "*/5 0-4 15 7 *"
+
+    # Wednesday, July 15 — Round 3 at 4:00 PM CT
+    # 6:00 AM–3:00 PM CT: every 15 minutes
+    - cron: "*/15 11-19 15 7 *"
+    # 3:00–8:00 PM CT: every 5 minutes
+    - cron: "*/5 20-23 15 7 *"
+    - cron: "*/5 0-1 16 7 *"
+    # 8:00–10:00 PM CT: every 15 minutes
+    - cron: "*/15 2-3 16 7 *"
+
+    # Thursday, July 16 — Round 4 at 11:30 AM CT
+    # 6:00–10:30 AM CT: every 15 minutes
+    - cron: "*/15 11-15 16 7 *"
+    # 10:30 AM–4:00 PM CT: every 5 minutes
+    - cron: "*/5 16-20 16 7 *"
+    # 4:00–10:00 PM CT: every 15 minutes
+    - cron: "*/15 21-23 16 7 *"
+    - cron: "*/15 0-3 17 7 *"
+
+    # Overnight fallback during qualifying: hourly
+    - cron: "0 4-10 13-16 7 *"
+  schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
+
+concurrency:
+  group: junior-gold-dashboard-update
+  cancel-in-progress: false
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -17,8 +55,33 @@ jobs:
       - run: python scripts/update_results.py
       - name: Commit changed data
         run: |
+          if git diff --quiet; then
+            echo "No dashboard changes detected."
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/dashboard.json
-          git diff --cached --quiet || git commit -m "Update Junior Gold results"
-          git push
+          git commit -m "Update Junior Gold results"
+
+          # Another workflow or a manual commit may update main while this job is running.
+          # Rebase our generated data commit onto the latest main before pushing.
+          for attempt in 1 2 3; do
+            echo "Push attempt $attempt of 3"
+
+            git fetch origin main
+            git rebase origin/main
+
+            if git push origin HEAD:main; then
+              echo "Dashboard update pushed successfully."
+              exit 0
+            fi
+
+            echo "Push was rejected because main changed again. Retrying..."
+            sleep $((attempt * 5))
+          done
+
+          echo "Unable to push after 3 attempts."
+          exit 1
