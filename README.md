@@ -61,3 +61,11 @@ The dashboard includes Jack's five registered bowling balls from his Junior Gold
 - Columbia 300 White Dot
 
 Each card includes the registered serial number, a short role description, an official manufacturer image, and a product-source link. The White Dot color was not specified on the equipment card, so its image is clearly labeled as representative.
+
+## Latest dashboard clarification
+
+- The cut-gap and needed-average tiles are explicitly labeled as placeholders, not official projections.
+- A cut explanation panel states that the first official cut is not set until all U18 Boys complete 16 qualifying games.
+- The top of the page links to Jack Wix Bowling on Facebook.
+- The Alabama leaderboard is labeled partial while additional Alabama bowlers compete later on July 13, and automatically changes to complete after today.
+- Jack's Columbia 300 White Dot is identified as the white / Diamond version and uses a matching white-ball image.

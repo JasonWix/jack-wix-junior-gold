@@ -8,20 +8,39 @@ async function load(){
   setText("total", d.current.total ?? "—");
   setText("average", d.current.average?.toFixed(2) ?? "—");
   setText("games-complete", `${d.current.games_complete}/16`);
-  setText("needed-average", d.current.needed_average ? d.current.needed_average.toFixed(1) : "—");
-  const fc = document.getElementById("from-cut");
-  const diff = d.current.pins_from_cut;
-  fc.textContent = diff == null ? "—" : `${diff > 0 ? "+" : ""}${diff}`;
-  fc.className = diff == null ? "" : diff >= 0 ? "positive" : "negative";
+  renderCutProjection(d.current || {}, d.cut_projection || {});
   setText("updated", `Dashboard refreshed ${fmt.format(new Date(d.updated_at))}`);
   renderSourceStatus(d.source_status || {}, d.updated_at);
 
   renderBlocks(d.blocks);
   renderEquipment(d.equipment || {});
+  renderAlabamaStatus(d.alabama_status || {});
   renderAlabama(d.alabama_bowlers || [], d.current.total);
   renderLastQualifier(d.schedule, d.blocks);
   renderSchedule(d.schedule);
   startCountdown(d.schedule);
+}
+
+
+function renderCutProjection(current, projection){
+  const fc=document.getElementById("from-cut");
+  const needed=document.getElementById("needed-average");
+  const diff=current.pins_from_cut;
+  const neededValue=current.needed_average;
+  const isPlaceholder=projection.status !== "official";
+
+  fc.textContent=diff == null ? "Pending" : `${isPlaceholder ? "≈ " : ""}${diff > 0 ? "+" : ""}${diff}`;
+  fc.className=diff == null ? "" : diff >= 0 ? "positive" : "negative";
+  needed.textContent=neededValue == null ? "Pending" : `${isPlaceholder ? "≈ " : ""}${Number(neededValue).toFixed(1)}`;
+
+  setText("cut-status-badge", projection.label || (isPlaceholder ? "Placeholder estimate" : "Official cut"));
+  setText("cut-status-title", projection.title || (isPlaceholder ? "There is no official cut yet" : "Official advancement cut"));
+  setText("cut-status-explanation", projection.explanation || "The cut is established only after all U18 Boys complete 16 qualifying games.");
+  setText("cut-gap-basis", projection.gap_basis || "Temporary comparison only");
+  setText("needed-average-basis", projection.needed_average_basis || "Temporary target only");
+
+  const badge=document.getElementById("cut-status-badge");
+  badge.className=`cut-status-badge ${isPlaceholder ? "placeholder" : "official-cut"}`;
 }
 
 function renderSourceStatus(source, fallbackCheckedAt){
@@ -137,6 +156,22 @@ function renderBlocks(blocks){
       <p class="block-total">${b.total ? `${b.total} pins · ${(b.total/b.games.length).toFixed(2)} avg.` : "Pending"}</p>
     </article>`).join("");
 }
+
+function renderAlabamaStatus(status){
+  const pill=document.getElementById("alabama-status-pill");
+  const note=document.getElementById("alabama-status-note");
+  if(!pill || !note) return;
+
+  const completeAfter=status.complete_after ? new Date(status.complete_after).getTime() : null;
+  const isComplete=status.status==="complete" || (completeAfter && Date.now() >= completeAfter);
+
+  pill.textContent=isComplete ? "Complete after today" : "Partial today";
+  pill.className=`pill ${isComplete ? "alabama-complete" : "alabama-partial"}`;
+  note.textContent=isComplete
+    ? (status.complete_note || "The Alabama bowler list is complete and reflects the latest Bowl.com report.")
+    : (status.partial_note || "Additional Alabama bowlers are scheduled later today. This list will expand as their scores are posted, and will be complete after today's squads.");
+}
+
 function renderAlabama(bowlers,jackTotal){
   const body=document.getElementById("alabama-bowlers");
   if(!body) return;

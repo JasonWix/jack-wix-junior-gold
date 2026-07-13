@@ -54,15 +54,21 @@ def parse_source_updated_at(text):
     return parsed.replace(tzinfo=ZoneInfo("America/Chicago"))
 
 def parse_athlete(text):
-    # Expected row pattern includes name, four games, total and average.
+    """Return the four game scores from Jack's standings row.
+
+    The report also includes total and decimal average values after the games.
+    Parsing the last four small numbers mistakenly treats parts of the average
+    as game scores, so only read the first four integers after the hometown.
+    """
     for line in text.splitlines():
-        if ATHLETE.lower() in line.lower():
-            nums=[int(x) for x in re.findall(r"\b\d{2,4}\b",line)]
-            # Last plausible four game scores, followed by total.
-            scores=[n for n in nums if 0 <= n <= 300]
-            if len(scores)>=4:
-                games=scores[-4:]
-                return games
+        if ATHLETE.lower() not in line.lower():
+            continue
+        hometown=re.search(r",\s*AL\s+(?P<tail>.+)$", line, re.I)
+        tail=hometown.group("tail") if hometown else line.split(ATHLETE,1)[-1]
+        values=[int(x) for x in re.findall(r"(?<![.\d])\d{1,3}(?![.\d])", tail)]
+        scores=[n for n in values if 0 <= n <= 300]
+        if len(scores) >= 4:
+            return scores[:4]
     return []
 
 def parse_alabama_bowlers(text):
@@ -154,12 +160,30 @@ def main():
     target=190*16
     remaining=16-count
     current["needed_average"]=round((target-total)/remaining,1) if remaining else None
+    data["cut_projection"]={
+        "status":"placeholder",
+        "official":False,
+        "label":"Placeholder estimate",
+        "title":"There is no official cut yet",
+        "explanation":"The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown are temporary planning aids and may move substantially as more squads and rounds are posted.",
+        "gap_basis":"Temporary comparison to 192nd place in the Round 1 report",
+        "needed_average_basis":"Temporary calculation using a fixed 190.0 final-average target",
+        "warning":"Do not present these values as the official advancement cut."
+    }
     if alabama:
         data["alabama_bowlers"]=alabama
         jack=next((b for b in alabama if b["name"].lower()=="jack wix"),None)
         if jack:
             current["position"]=jack["rank"]
     checked_at=datetime.now(ZoneInfo("America/Chicago"))
+    alabama_complete_after=datetime(2026,7,14,0,0,tzinfo=ZoneInfo("America/Chicago"))
+    alabama_is_complete=checked_at >= alabama_complete_after
+    data["alabama_status"]={
+        "status":"complete" if alabama_is_complete else "partial",
+        "complete_after":alabama_complete_after.isoformat(),
+        "partial_note":"Additional Alabama U18 Boys are scheduled to bowl later today. This list will expand as Bowl.com posts their scores and will be complete after today's squads.",
+        "complete_note":"The Alabama U18 Boys list is complete for the field and reflects the latest Bowl.com report."
+    }
     previous_source=data.get("source_status", {})
     if latest_source_time:
         age_minutes=max(0, int((checked_at-latest_source_time).total_seconds()/60))

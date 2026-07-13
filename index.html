@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0b1220">
+  <meta name="theme-color" content="#003da5">
   <title>Jack Wix | Junior Gold 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,6 +31,10 @@
       </div>
     </div>
     <div class="hero-actions">
+      <a class="social-link facebook-link" href="https://www.facebook.com/jackwixbowling" target="_blank" rel="noopener" aria-label="Visit Jack Wix Bowling on Facebook">
+        <span class="facebook-icon" aria-hidden="true">f</span>
+        Jack Wix Bowling
+      </a>
       <a class="official" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official results ↗</a>
     </div>
   </header>
@@ -71,9 +75,24 @@
       <article><span>Position</span><strong id="position">—</strong></article>
       <article><span>Total pins</span><strong id="total">—</strong></article>
       <article><span>Average</span><strong id="average">—</strong></article>
-      <article><span>Pins from cut</span><strong id="from-cut">—</strong></article>
+      <article class="estimate-metric"><span>Estimated cut gap*</span><strong id="from-cut">—</strong><small>Placeholder, not official</small></article>
       <article><span>Games complete</span><strong id="games-complete">—</strong></article>
-      <article><span>Needed avg.</span><strong id="needed-average">—</strong></article>
+      <article class="estimate-metric"><span>Estimated avg. needed*</span><strong id="needed-average">—</strong><small>Placeholder, not official</small></article>
+    </section>
+
+    <section class="cut-status-panel" aria-labelledby="cut-status-title">
+      <div class="cut-status-heading">
+        <span id="cut-status-badge" class="cut-status-badge">Placeholder estimate</span>
+        <div>
+          <p class="label">Advancement cut status</p>
+          <h2 id="cut-status-title">There is no official cut yet</h2>
+        </div>
+      </div>
+      <p id="cut-status-explanation">The official U18 Boys first cut is not established until all competitors complete 16 qualifying games.</p>
+      <div class="cut-method-grid">
+        <div><span>Current cut-gap basis</span><strong id="cut-gap-basis">Loading…</strong></div>
+        <div><span>Needed-average basis</span><strong id="needed-average-basis">Loading…</strong></div>
+      </div>
     </section>
 
     <section class="panel">
@@ -86,7 +105,6 @@
       </div>
       <div id="blocks" class="blocks"></div>
     </section>
-
 
     <section class="panel equipment-panel">
       <div class="panel-head">
@@ -110,7 +128,10 @@
           <p class="label">Representing Alabama</p>
           <h2>Alabama U18 Boys leaderboard</h2>
         </div>
-        <p class="muted">Official overall standings</p>
+        <div class="alabama-panel-status">
+          <span id="alabama-status-pill" class="pill alabama-partial">Partial today</span>
+          <p id="alabama-status-note" class="muted">Additional Alabama bowlers are scheduled later today.</p>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="leaderboard">
@@ -142,7 +163,7 @@
 
     <section class="panel note">
       <h2>How to read this dashboard</h2>
-      <p>Standings are collected from the official Bowl.com U18 Boys result reports. Rankings and cut-line estimates can change as additional squads finish. The countdown uses Central Time.</p>
+      <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary placeholder, not an official advancement target. Additional Alabama bowlers are scheduled later today, so the Alabama list will expand and should be complete after today's squads are posted. The countdown uses Central Time.</p>
     </section>
   </main>
 

@@ -160,16 +160,32 @@
       },
       {
         "brand": "Columbia 300",
-        "name": "White Dot",
+        "name": "White Dot Diamond",
         "registered_name": "White Dot",
         "serial": "ASF1136F",
         "role": "Straight spare ball",
         "type": "Polyester",
-        "image": "https://columbia300.com/cdn/shop/files/White_Dot_Scarlet_2021_1600x1707_website.png?v=1699994496&width=1080",
-        "source_url": "https://columbia300.com/collections/retired-balls-1/products/white-dot-scarlet",
-        "image_note": "Representative official White Dot image; exact color was not listed on the ball card",
-        "representative_image": true
+        "image": "https://cdn.webshopapp.com/shops/70265/files/272671105/columbia-300-white-dot-diamond.jpg",
+        "source_url": "https://www.bowlingshopeurope.eu/nl/columbia-300-white-dot-diamond.html",
+        "image_note": "White / Diamond image matching Jack's white spare ball",
+        "color": "White / Diamond"
       }
     ]
+  },
+  "cut_projection": {
+    "status": "placeholder",
+    "official": false,
+    "label": "Placeholder estimate",
+    "title": "There is no official cut yet",
+    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown above are temporary planning aids and may move substantially as more squads and rounds are posted.",
+    "gap_basis": "Temporary comparison using the dashboard's original Round 1 cut-place assumption",
+    "needed_average_basis": "Temporary calculation using a fixed 190.0 final-average planning target",
+    "warning": "Do not present these values as the official advancement cut."
+  },
+  "alabama_status": {
+    "status": "partial",
+    "complete_after": "2026-07-14T00:00:00-05:00",
+    "partial_note": "Additional Alabama U18 Boys are scheduled to bowl later today. This list will expand as Bowl.com posts their scores and will be complete after today's squads.",
+    "complete_note": "The Alabama U18 Boys list is complete for the field and reflects the latest Bowl.com report."
   }
 }
