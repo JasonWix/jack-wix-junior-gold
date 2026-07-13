@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>Jack Wix | Junior Gold 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-main">
+      <div class="hero-left">
+        <img class="hero-logo" src="assets/junior-gold-2026-logo.png" alt="Junior Gold Championships 2026 Minneapolis logo">
+        <div>
+          <p class="eyebrow">2026 Junior Gold Championships</p>
+          <h1>Jack Wix</h1>
+          <p class="subtitle">U18 Boys · Squad 1 · Cullman, Alabama</p>
+          <p class="built-by">Built by Jason Wix</p>
+        </div>
+      </div>
+      <div class="hero-photo-card">
+        <img class="hero-photo" src="assets/jack-wix-photo.jpg" alt="Jack Wix bowling portrait">
+        <div class="hero-photo-caption">
+          <strong>Jack Wix</strong>
+          <span>Good Hope High School Raiders · Two-handed bowler</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a class="official" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official results ↗</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="feature-grid">
+      <section class="next-card">
+        <div>
+          <p class="label">Next scheduled block</p>
+          <h2 id="next-title">Loading…</h2>
+          <p id="next-detail" class="muted"></p>
+        </div>
+        <div class="countdown" id="countdown">--d --h --m --s</div>
+      </section>
+
+      <section class="last-card">
+        <div>
+          <p class="label">Last bowled qualifier</p>
+          <h2 id="last-title">Loading…</h2>
+          <p id="last-detail" class="muted"></p>
+        </div>
+      </section>
+    </section>
+
+    <section class="source-status" aria-live="polite">
+      <div class="source-status-main">
+        <span id="source-status-dot" class="status-dot"></span>
+        <div>
+          <p class="label">Official results status</p>
+          <strong id="source-status-title">Loading Bowl.com status…</strong>
+          <p id="source-status-detail" class="muted"></p>
+        </div>
+      </div>
+      <a id="source-report-link" class="source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">View source ↗</a>
+    </section>
+
+    <section class="metrics">
+      <article><span>Position</span><strong id="position">—</strong></article>
+      <article><span>Total pins</span><strong id="total">—</strong></article>
+      <article><span>Average</span><strong id="average">—</strong></article>
+      <article><span>Pins from cut</span><strong id="from-cut">—</strong></article>
+      <article><span>Games complete</span><strong id="games-complete">—</strong></article>
+      <article><span>Needed avg.</span><strong id="needed-average">—</strong></article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="label">Tournament progress</p>
+          <h2>Scores by block</h2>
+        </div>
+        <p id="updated" class="muted"></p>
+      </div>
+      <div id="blocks" class="blocks"></div>
+    </section>
+
+
+    <section class="panel equipment-panel">
+      <div class="panel-head">
+        <div>
+          <p class="label">Tournament equipment</p>
+          <h2>Jack's registered ball card</h2>
+          <p class="muted equipment-summary" id="equipment-summary"></p>
+        </div>
+        <span class="pill equipment-count" id="equipment-count">5 balls</span>
+      </div>
+      <div id="equipment-grid" class="equipment-grid"></div>
+      <div class="equipment-rule-note">
+        <strong>Equipment note:</strong>
+        <span>Jack registered the five-ball tournament maximum. The urethane ball is permitted for qualifying/advancer play only when compliant with the event hardness rule and is not permitted beginning with match play.</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="label">Representing Alabama</p>
+          <h2>Alabama U18 Boys leaderboard</h2>
+        </div>
+        <p class="muted">Official overall standings</p>
+      </div>
+      <div class="table-wrap">
+        <table class="leaderboard">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Bowler</th>
+              <th>Hometown</th>
+              <th>Games</th>
+              <th>Total</th>
+              <th>Average</th>
+              <th>vs. Jack</th>
+            </tr>
+          </thead>
+          <tbody id="alabama-bowlers"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="label">Upcoming schedule</p>
+          <h2>Squad 1 qualifying</h2>
+        </div>
+      </div>
+      <div id="schedule" class="schedule"></div>
+    </section>
+
+    <section class="panel note">
+      <h2>How to read this dashboard</h2>
+      <p>Standings are collected from the official Bowl.com U18 Boys result reports. Rankings and cut-line estimates can change as additional squads finish. The countdown uses Central Time.</p>
+    </section>
+  </main>
+
+  <footer>Unofficial family dashboard · Built by Jason Wix · Data source: Bowl.com</footer>
+  <script src="app.js"></script>
+</body>
+</html>

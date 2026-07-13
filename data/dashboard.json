@@ -1,0 +1,175 @@
+{
+  "updated_at": "2026-07-13T15:46:39.657134-05:00",
+  "current": {
+    "position": 260,
+    "total": 706,
+    "average": 176.5,
+    "games_complete": 4,
+    "pins_from_cut": -27,
+    "needed_average": 194.5,
+    "target_final_average": 190
+  },
+  "blocks": [
+    {
+      "round": 1,
+      "games": [
+        132,
+        190,
+        163,
+        221
+      ],
+      "total": 706
+    },
+    {
+      "round": 2,
+      "games": [],
+      "total": null
+    },
+    {
+      "round": 3,
+      "games": [],
+      "total": null
+    },
+    {
+      "round": 4,
+      "games": [],
+      "total": null
+    }
+  ],
+  "schedule": [
+    {
+      "title": "Qualifying Round 1",
+      "start": "2026-07-13T07:00:00-05:00",
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+    },
+    {
+      "title": "Qualifying Round 2",
+      "start": "2026-07-14T20:30:00-05:00",
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+    },
+    {
+      "title": "Qualifying Round 3",
+      "start": "2026-07-15T16:00:00-05:00",
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+    },
+    {
+      "title": "Qualifying Round 4",
+      "start": "2026-07-16T11:30:00-05:00",
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+    }
+  ],
+  "alabama_bowlers": [
+    {
+      "rank": 70,
+      "tied": true,
+      "name": "Ryan Best",
+      "hometown": "Deatsville, AL",
+      "games_complete": 4,
+      "total": 792,
+      "average": 198.0
+    },
+    {
+      "rank": 88,
+      "tied": true,
+      "name": "Seth Wilson",
+      "hometown": "Elmore, AL",
+      "games_complete": 4,
+      "total": 779,
+      "average": 194.75
+    },
+    {
+      "rank": 260,
+      "tied": true,
+      "name": "Jack Wix",
+      "hometown": "Cullman, AL",
+      "games_complete": 4,
+      "total": 706,
+      "average": 176.5
+    }
+  ],
+  "site": {
+    "built_by": "Jason Wix",
+    "branding": {
+      "logo": "assets/junior-gold-2026-logo.png",
+      "colors": {
+        "blue": "#003DA5",
+        "red": "#C8102E",
+        "gold": "#F8C322",
+        "sky": "#5EAED0",
+        "green": "#43B929"
+      }
+    }
+  },
+  "source_status": {
+    "status": "current",
+    "last_updated_at": "2026-07-13T14:37:00-05:00",
+    "last_checked_at": "2026-07-13T15:46:39.657134-05:00",
+    "report": "Qualifying Round 1",
+    "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
+    "age_minutes": 69
+  },
+  "equipment": {
+    "handedness": "Two-Handed Right",
+    "registered_count": 5,
+    "max_allowed": 5,
+    "balls": [
+      {
+        "brand": "900 Global",
+        "name": "Reality",
+        "registered_name": "Reality",
+        "serial": "22GTEC161039",
+        "role": "Heavy oil / strong traction",
+        "type": "Reactive solid",
+        "image": "https://assets.1.commercebuild.com/d186dcd2044cf54d8e48876defef4907/contents/BBMGTE/BBMGTE.png",
+        "source_url": "https://www.stormbowling.com/products/collections/bowling-balls-archive/bbmgte-reality",
+        "image_note": "Official manufacturer archive image"
+      },
+      {
+        "brand": "Storm",
+        "name": "Phaze II Pearl",
+        "registered_name": "Phaze 2 Pearl",
+        "serial": "25VZPJ29A004",
+        "role": "Versatile pearl reaction",
+        "type": "Pearl reactive",
+        "image": "https://stormproducts.nyc3.cdn.digitaloceanspaces.com/product_pages/Balls/Storm/Phaze_II_Pearl/Phaze%20II%20Pearl_NoShadow.png",
+        "source_url": "https://www.stormbowling.com/storm-phaze-ii-pearl-bowling-ball",
+        "image_note": "Official Storm product image"
+      },
+      {
+        "brand": "Storm",
+        "name": "Concept",
+        "registered_name": "Concept",
+        "serial": "26VONC11N039",
+        "role": "Controlled shape on short or demanding patterns",
+        "type": "Pearl reactive",
+        "image": "https://stormproducts.nyc3.cdn.digitaloceanspaces.com/product_pages/Balls/Storm/Concept/BBMVCN.png",
+        "source_url": "https://www.stormbowling.com/storm-concept-bowling-ball",
+        "image_note": "Official Storm product image"
+      },
+      {
+        "brand": "Hammer",
+        "name": "Black Pearl Urethane",
+        "registered_name": "Black Urethane Pearl",
+        "serial": "BSE1105F",
+        "role": "Smooth control on lighter oil",
+        "type": "78D pearl urethane",
+        "restriction": "Qualifying/advancer only; prohibited in match play",
+        "image": "https://hammerbowling.com/cdn/shop/files/Black_Pearl_Urethane_78D_CG_1600x1707_website.png?v=1709650257&width=1080",
+        "source_url": "https://hammerbowling.com/products/black-pearl-urethane",
+        "image_note": "Official Hammer product image"
+      },
+      {
+        "brand": "Columbia 300",
+        "name": "White Dot",
+        "registered_name": "White Dot",
+        "serial": "ASF1136F",
+        "role": "Straight spare ball",
+        "type": "Polyester",
+        "image": "https://columbia300.com/cdn/shop/files/White_Dot_Scarlet_2021_1600x1707_website.png?v=1699994496&width=1080",
+        "source_url": "https://columbia300.com/collections/retired-balls-1/products/white-dot-scarlet",
+        "image_note": "Representative official White Dot image; exact color was not listed on the ball card",
+        "representative_image": true
+      }
+    ]
+  }
+}
