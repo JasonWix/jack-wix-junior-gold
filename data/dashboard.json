@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-14T12:23:03.151676-05:00",
+  "updated_at": "2026-07-14T13:39:08.916439-05:00",
   "current": {
     "position": 477,
     "total": 706,
@@ -120,6 +120,21 @@
     {
       "observed_at": "2026-07-14T00:51:23.938588-05:00",
       "source_updated_at": "2026-07-13T23:33:00-05:00",
+      "report": "Qualifying Round 1",
+      "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
+      "games_complete": 4,
+      "position": 477,
+      "field_size": 915,
+      "total": 706,
+      "average": 176.5,
+      "pins_from_cut": -90,
+      "needed_average": 206.5,
+      "projected_cut_total": 3184,
+      "cut_pace_average": 199.0
+    },
+    {
+      "observed_at": "2026-07-14T13:39:08.916439-05:00",
+      "source_updated_at": "2026-07-14T13:37:00-05:00",
       "report": "Qualifying Round 1",
       "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
       "games_complete": 4,
@@ -368,7 +383,7 @@
     {
       "rank": 582,
       "tied": true,
-      "name": "Richard D Hoskinson",
+      "name": "Richard D",
       "hometown": "Northport, AL",
       "games_complete": 4,
       "total": 681,
@@ -550,12 +565,12 @@
     }
   },
   "source_status": {
-    "status": "current",
+    "status": "delayed",
     "last_updated_at": "2026-07-14T09:56:00-05:00",
-    "last_checked_at": "2026-07-14T12:23:03.151676-05:00",
+    "last_checked_at": "2026-07-14T13:39:08.916439-05:00",
     "report": "Qualifying Round 2",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%202_U18Boys.pdf?v=new",
-    "age_minutes": 147,
+    "age_minutes": 223,
     "valid_reports": [
       1,
       2
