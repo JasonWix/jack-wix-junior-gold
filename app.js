@@ -98,7 +98,7 @@ function saveSectionOrder(){
 }
 
 function refreshSectionOrderButtons(){
-  const rows=[...document.querySelectorAll("[data-section-visibility]")];
+  const rows=[...document.querySelectorAll("[data-section-visibility]")].filter(row=>!row.hidden);
   rows.forEach((row,index)=>{
     row.querySelector(".section-order-up").disabled=index===0;
     row.querySelector(".section-order-down").disabled=index===rows.length-1;
@@ -125,12 +125,14 @@ function moveDashboardSection(sourceId,targetId,after=false){
   }
   saveSectionOrder();
   refreshSectionOrderButtons();
-  const position=[...document.querySelectorAll("details.dashboard-section")].findIndex(section=>section.id===sourceId)+1;
+  const position=[...document.querySelectorAll("[data-section-visibility]")]
+    .filter(row=>!row.hidden)
+    .findIndex(row=>row.dataset.sectionVisibility===sourceId)+1;
   setText("section-order-status",`${sectionDisplayName(source)} moved to position ${position}.`);
 }
 
 function moveDashboardSectionOneStep(sectionId,direction){
-  const rows=[...document.querySelectorAll("[data-section-visibility]")];
+  const rows=[...document.querySelectorAll("[data-section-visibility]")].filter(row=>!row.hidden);
   const index=rows.findIndex(row=>row.dataset.sectionVisibility===sectionId);
   const targetIndex=index+direction;
   if(index<0 || targetIndex<0 || targetIndex>=rows.length) return;
@@ -205,6 +207,7 @@ function applySectionVisibility(){
     section.hidden=!available || !userVisible;
     const control=document.querySelector(`[data-section-visibility="${section.id}"]`);
     if(!control) return;
+    control.hidden=!available;
     const input=control.querySelector("input");
     input.checked=userVisible;
     input.disabled=!available;
@@ -212,12 +215,32 @@ function applySectionVisibility(){
     control.querySelector(".section-visibility-label").textContent=sectionDisplayName(section);
     control.querySelector(".section-visibility-status").textContent=available ? "Available" : "Unavailable for current selection";
   });
+  refreshSectionOrderButtons();
 }
 
 function setSectionAvailability(sectionId,available){
   const section=document.getElementById(sectionId);
   if(!section) return;
   section.dataset.contextAvailable=String(Boolean(available));
+}
+
+function blockHasPostedData(block){
+  return Boolean(block && (Number(block.total)>0 || (Array.isArray(block.games) && block.games.length>0)));
+}
+
+function setQualifyingOverviewAvailability({schedule=[],blocks=[],isDefaultJack=false}={}){
+  const personalSchedule=isDefaultJack
+    ? schedule.filter(event=>event?.start && event?.title && event?.location)
+    : [];
+  const hasNext=personalSchedule.some(event=>new Date(event.start).getTime()>Date.now());
+  const hasLast=personalSchedule.some((event,index)=>blockHasPostedData(blocks[index]));
+  const nextCard=document.getElementById("next-block-card");
+  const lastCard=document.getElementById("last-block-card");
+  const grid=nextCard?.closest(".feature-grid");
+  if(nextCard) nextCard.hidden=!hasNext;
+  if(lastCard) lastCard.hidden=!hasLast;
+  if(grid) grid.classList.toggle("single-card",Number(hasNext)+Number(hasLast)===1);
+  return {hasNext,hasLast,hasOverview:hasNext || hasLast,hasSchedule:personalSchedule.length>0};
 }
 
 function refreshSectionVisibilityLabels(){
@@ -507,6 +530,22 @@ function applySelectedBowlerContext(year,yearData,profile){
   const cutContext=selectedCutContext(profile,selectedYear,dashboardData.cut_projection || {});
   const history=profileHistoryForDashboard(profile,yearData,cutContext);
   const comparison=buildSelectedComparison(profile);
+  const scheduleAvailability=setQualifyingOverviewAvailability({
+    schedule:dashboardData.schedule || [],
+    blocks,
+    isDefaultJack
+  });
+  const hasEquipment=Boolean(isDefaultJack && dashboardData.equipment?.balls?.length);
+  const hasStandings=Number.isFinite(Number(profile.rank))
+    && Number.isFinite(Number(profile.total))
+    && Number.isFinite(Number(profile.average))
+    && Number(profile.games_complete)>0;
+  const hasSourceStatus=selectedYear==="2026" && Boolean(
+    yearData.source_updated_at || yearData.source_page || yearData.reports?.length
+  );
+  const hasTournamentPath=selectedYear==="2026"
+    && hasStandings
+    && Boolean(dashboardData.tournament_path?.length);
   const current={
     ...profile,
     position:profile.rank,
@@ -577,18 +616,18 @@ function applySelectedBowlerContext(year,yearData,profile){
 
   const availability={
     "section-bowler-explorer":true,
-    "section-qualifying-overview":isDefaultJack,
-    "section-since-last-visit":isDefaultJack,
-    "section-results-status":selectedYear==="2026",
-    "section-current-statistics":true,
+    "section-qualifying-overview":scheduleAvailability.hasOverview,
+    "section-since-last-visit":isDefaultJack && hasStandings,
+    "section-results-status":hasSourceStatus,
+    "section-current-statistics":hasStandings,
     "section-year-comparison":Boolean(comparison),
     "section-progress":history.length>0,
     "section-cut-status":Boolean(cutContext),
     "section-scores":hasScores,
-    "section-schedule":isDefaultJack,
-    "section-tournament-path":selectedYear==="2026",
+    "section-schedule":scheduleAvailability.hasSchedule,
+    "section-tournament-path":hasTournamentPath,
     "section-alabama":Boolean(document.getElementById("explorer-state")?.value),
-    "section-equipment":isDefaultJack,
+    "section-equipment":hasEquipment,
     "section-dashboard-guide":true
   };
   Object.entries(availability).forEach(([id,available])=>setSectionAvailability(id,available));
@@ -1465,9 +1504,9 @@ function refreshStateLeaderboard(refreshVisibility=true){
   const select=document.getElementById("explorer-state");
   const yearData=explorerYearData(explorerSelectedYear);
   const stateCode=select?.value || "";
-  const available=Boolean(yearData && stateCode && stateCode!=="__NONE__");
-  setSectionAvailability("section-alabama",available);
-  if(!available){
+  const hasStateSelection=Boolean(yearData && stateCode && stateCode!=="__NONE__");
+  if(!hasStateSelection){
+    setSectionAvailability("section-alabama",false);
     setText("state-leaderboard-eyebrow",`${explorerSelectedYear} state results`);
     setText("alabama-title","State U18 Boys leaderboard");
     if(refreshVisibility) refreshSectionVisibilityLabels();
@@ -1478,6 +1517,12 @@ function refreshStateLeaderboard(refreshVisibility=true){
   const bowlers=(yearData.bowlers || [])
     .filter(bowler=>explorerStateValue(bowler)===stateCode)
     .sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  if(!bowlers.length){
+    setSectionAvailability("section-alabama",false);
+    if(refreshVisibility) refreshSectionVisibilityLabels();
+    return;
+  }
+  setSectionAvailability("section-alabama",true);
   const baseline=stateLeaderboardBaseline(yearData,bowlers);
   const isFinal=yearData.status==="final";
   const context={stateCode,stateName,year:String(yearData.year),fieldSize:yearData.field_size,baseline};

@@ -140,6 +140,7 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - One-tap family sharing with a copy fallback.
 - Browser-saved favorite state bowlers and a compact comparison view.
 - A footer version loaded from `VERSION`, with an automatic increment after every merged pull request.
+- Data-aware section visibility: sections and overview cards disappear when the selected bowler has no source-backed data for them.
 
 
 ## Latest dashboard update
@@ -151,6 +152,7 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - Other bowlers' equipment is intentionally excluded.
 - The selected-state table becomes stacked cards on smaller screens.
 - Section order and visibility are personal to each browser and can be changed without altering the official data.
+- Unavailable sections are removed from both the dashboard and its display manager until the selected bowler has the required data.
 
 
 ## Dashboard versioning

@@ -1,4 +1,4 @@
-JACK WIX JUNIOR GOLD DASHBOARD — VERSIONED PERSONALIZED LAYOUT V7
+JACK WIX JUNIOR GOLD DASHBOARD — DATA-AWARE PERSONALIZED LAYOUT V8
 
 This ZIP contains the complete repository except for Git history. It includes
 the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
@@ -53,6 +53,10 @@ WHAT THIS UPDATE ADDS
 - Display the dashboard version at the bottom of every page and automatically
   increase it after each pull request is merged. The included VERSION file is
   v5; merging pull request #6 publishes v6.
+- Hide sections that have no source-backed data for the selected bowler,
+  including the next-block card, last-qualifier card, personal schedule, ball
+  card, comparison, cut, progress, scores, and state leaderboard. Unavailable
+  sections are also omitted from the display manager.
 
 EXPECTED CURRENT 2026 RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
 
