@@ -26,6 +26,12 @@
       </div>
 
       <nav class="hero-actions" aria-label="Dashboard links">
+        <button id="share-dashboard" class="action-button share-button" type="button">
+          <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M18 16.1c-.8 0-1.5.3-2 .8L8.9 12.8c.1-.3.1-.5.1-.8s0-.5-.1-.8L16 7.1c.5.5 1.2.8 2 .8a3 3 0 1 0-2.9-3.7L8 8.3a3 3 0 1 0 0 7.4l7.1 4.1A3 3 0 1 0 18 16.1Z"/>
+          </svg>
+          Share family update
+        </button>
         <a class="action-button facebook-link" href="https://www.facebook.com/jackwixbowling" target="_blank" rel="noopener">
           <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M13.7 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5H17V3.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1v2.3H8V13h2.6v8h3.1Z"/>
@@ -35,11 +41,20 @@
         <a class="action-button official-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">
           Official results <span aria-hidden="true">↗</span>
         </a>
+        <span id="share-status" class="share-status" role="status" aria-live="polite"></span>
       </nav>
     </div>
   </header>
 
   <main class="container">
+    <div class="dashboard-toolbar" aria-label="Dashboard section controls">
+      <span>Dashboard sections</span>
+      <div>
+        <button id="expand-all" type="button">Expand all</button>
+        <button id="collapse-all" type="button">Collapse all</button>
+      </div>
+    </div>
+
     <details id="section-qualifying-overview" class="dashboard-section overview-section" open>
       <summary class="section-summary">
         <div>
@@ -55,6 +70,7 @@
               <p class="label">Next scheduled block</p>
               <h2 id="next-title">Loading…</h2>
               <p id="next-detail" class="muted"></p>
+              <div id="next-actions" class="next-actions" aria-label="Next block actions"></div>
             </div>
             <div class="countdown" id="countdown">--d --h --m --s</div>
           </article>
@@ -67,6 +83,20 @@
             </div>
           </article>
         </section>
+      </div>
+    </details>
+
+    <details id="section-since-last-visit" class="dashboard-section visit-section" open>
+      <summary class="section-summary">
+        <div>
+          <p class="label">Personal update</p>
+          <h2 id="visit-title">Since your last visit</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p id="visit-summary" class="visit-summary">Checking for new official results…</p>
+        <div id="visit-changes" class="visit-changes"></div>
       </div>
     </details>
 
@@ -129,6 +159,80 @@
       </div>
     </details>
 
+    <details id="section-year-comparison" class="panel dashboard-section year-comparison-panel" open>
+      <summary class="panel-head section-summary">
+        <div>
+          <p class="label">Year-over-year qualifying</p>
+          <h2>2025 vs. 2026</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <div class="comparison-intro">
+          <div>
+            <h3>Same four-game checkpoint, day by day</h3>
+            <p id="year-comparison-basis">Loading the official 2025 comparison…</p>
+          </div>
+          <span class="pill comparison-live-pill">2026 updates live</span>
+        </div>
+
+        <div id="year-comparison-summary" class="year-comparison-summary" aria-label="Year-over-year summary"></div>
+
+        <div class="comparison-chart-heading">
+          <div>
+            <h3>Four-game block total</h3>
+            <p>Grouped bars use a zero baseline. A 2026 bar appears only after that day’s full block is posted.</p>
+          </div>
+          <div class="chart-legend" aria-label="Comparison chart legend">
+            <span><i class="legend-swatch previous-year-series"></i>2025</span>
+            <span><i class="legend-swatch current-year-series"></i>2026</span>
+          </div>
+        </div>
+        <div id="year-comparison-chart" class="year-comparison-chart"></div>
+
+        <div class="comparison-days-heading">
+          <p class="label">Exact results</p>
+          <h3>Daily scorecards</h3>
+        </div>
+        <div id="year-comparison-days" class="year-comparison-days"></div>
+
+        <div class="comparison-source-note">
+          <p>Ranks are shown as they appeared after each day. The 2025 field is final; the 2026 published field and position can still change as reports are updated.</p>
+          <div id="year-comparison-sources" class="comparison-sources"></div>
+        </div>
+      </div>
+    </details>
+
+    <details id="section-progress" class="panel dashboard-section progress-panel" open>
+      <summary class="panel-head section-summary">
+        <div>
+          <p class="label">Performance movement</p>
+          <h2>Progress and cut pace</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <div class="chart-heading">
+          <div>
+            <h3>Cumulative average by completed block</h3>
+            <p>Jack's tournament average compared with the temporary projected cut pace. Both values use pins per game.</p>
+          </div>
+          <div class="chart-legend" aria-label="Chart legend">
+            <span><i class="legend-swatch jack-series"></i>Jack</span>
+            <span><i class="legend-swatch cut-series"></i>Estimated cut pace</span>
+          </div>
+        </div>
+        <div id="progress-chart" class="progress-chart"></div>
+        <div id="position-history" class="position-history" aria-label="Position movement"></div>
+
+        <div class="highlights-heading">
+          <p class="label">Performance highlights</p>
+          <h3>What the posted scores show</h3>
+        </div>
+        <div id="performance-highlights" class="performance-highlights"></div>
+      </div>
+    </details>
+
     <details id="section-cut-status" class="dashboard-section cut-status-panel" open>
       <summary class="section-summary">
         <div class="cut-status-heading">
@@ -184,6 +288,21 @@
       </div>
     </details>
 
+    <details id="section-tournament-path" class="panel dashboard-section path-panel" open>
+      <summary class="panel-head section-summary">
+        <div>
+          <p class="label">Championship format</p>
+          <h2>Tournament path</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p class="path-intro">Jack must advance at each cut to continue. The current stage is highlighted; future stages are not guaranteed.</p>
+        <ol id="tournament-path" class="tournament-path"></ol>
+        <a class="format-source" href="https://bowl.com/news/2026-junior-gold-championships-set-to-begin-in-minneapolis" target="_blank" rel="noopener">Official 2026 format ↗</a>
+      </div>
+    </details>
+
     <details id="section-alabama" class="panel dashboard-section" open>
       <summary class="panel-head alabama-heading section-summary">
         <div>
@@ -200,10 +319,21 @@
         </div>
       </summary>
       <div class="section-body">
+        <section class="favorites-panel" aria-labelledby="favorites-title">
+          <div class="favorites-heading">
+            <div>
+              <p class="label">Saved comparisons</p>
+              <h3 id="favorites-title">Favorite Alabama bowlers</h3>
+            </div>
+            <span class="muted">Select the star beside any name.</span>
+          </div>
+          <div id="favorite-bowlers" class="favorite-bowlers"></div>
+        </section>
         <div class="table-wrap">
           <table class="leaderboard">
             <thead>
               <tr>
+                <th><span class="sr-only">Favorite</span></th>
                 <th>Rank</th>
                 <th>Bowler</th>
                 <th>Hometown</th>
@@ -250,7 +380,7 @@
       </summary>
       <div class="section-body">
         <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary planning estimate, not an official advancement target.</p>
-        <p>Additional Alabama bowlers are scheduled later today, so the Alabama list will expand and should be complete after today's squads are posted. All schedule and countdown times use Central Time.</p>
+        <p>The year-over-year section compares Jack's final 2025 results with 2026 only at matching four-game checkpoints. The progress chart uses one final official snapshot for each completed 2026 block. “Since your last visit” and favorite bowlers are stored only in the current browser. All schedule and countdown times use Central Time.</p>
       </div>
     </details>
   </main>

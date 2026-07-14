@@ -86,6 +86,9 @@ jobs:
           assert abs(current["total"] - current["average"] * current["games_complete"]) <= 0.1
           assert current["field_size"] >= current["position"]
           assert data["source_status"]["status"] in {"current", "delayed"}
+          assert 1 <= len(data["history"]) <= 96
+          assert data["history"][-1]["games_complete"] == current["games_complete"]
+          assert data["history"][-1]["total"] == current["total"]
           print("Dashboard validation passed:", current)
           PY
 

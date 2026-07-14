@@ -41,24 +41,167 @@
     {
       "title": "Qualifying Round 1",
       "start": "2026-07-13T07:00:00-05:00",
-      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": true,
+        "url": "https://www.bowltv.com/",
+        "label": "Watch on BowlTV"
+      }
     },
     {
       "title": "Qualifying Round 2",
       "start": "2026-07-14T20:30:00-05:00",
-      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": false
+      }
     },
     {
       "title": "Qualifying Round 3",
       "start": "2026-07-15T16:00:00-05:00",
-      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": true,
+        "url": "https://www.bowltv.com/",
+        "label": "Watch on BowlTV"
+      }
     },
     {
       "title": "Qualifying Round 4",
       "start": "2026-07-16T11:30:00-05:00",
-      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": false
+      }
     }
   ],
+  "tournament_path": [
+    {
+      "id": "qualifying",
+      "title": "Qualifying",
+      "detail": "Four blocks \u00b7 16 games"
+    },
+    {
+      "id": "advancers",
+      "title": "Advancers Round",
+      "detail": "Five games after the first cut"
+    },
+    {
+      "id": "final-advancers",
+      "title": "Final Advancers",
+      "detail": "Five additional games after the second cut"
+    },
+    {
+      "id": "match-play",
+      "title": "Match Play",
+      "detail": "Top 16 bowlers"
+    }
+  ],
+  "history": [
+    {
+      "observed_at": "2026-07-13T20:56:30.645270-05:00",
+      "source_updated_at": "2026-07-13T18:56:00-05:00",
+      "report": "Qualifying Round 1",
+      "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
+      "games_complete": 4,
+      "position": 364,
+      "field_size": 689,
+      "total": 706,
+      "average": 176.5,
+      "pins_from_cut": -87,
+      "needed_average": 205.5,
+      "projected_cut_total": 3172,
+      "cut_pace_average": 198.25
+    }
+  ],
+  "year_comparison": {
+    "current_year": 2026,
+    "source_page": "https://bowl.com/youth/youth-tournaments/junior-gold-championships/2025-results",
+    "comparison_basis": "Each day compares the same four-game qualifying checkpoint. The 2025 results are final; 2026 remains live and will fill in as Bowl.com publishes each round.",
+    "previous_year": {
+      "year": 2025,
+      "division": "U18 Boys",
+      "field_size": 1341,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            191,
+            133,
+            158,
+            115
+          ],
+          "total": 597,
+          "cumulative_total": 597,
+          "cumulative_average": 149.25,
+          "position": 1188,
+          "tied": true,
+          "source_updated_at": "2025-07-14T23:33:00-05:00",
+          "source_url": "https://scores.bowl.com/2025-JG/Qualifying_Round%201_U18Boys.pdf?v=new"
+        },
+        {
+          "round": 2,
+          "games": [
+            172,
+            191,
+            142,
+            168
+          ],
+          "total": 673,
+          "cumulative_total": 1270,
+          "cumulative_average": 158.75,
+          "position": 1096,
+          "tied": true,
+          "source_updated_at": "2025-07-15T23:14:00-05:00",
+          "source_url": "https://scores.bowl.com/2025-JG/Qualifying_Round%202_U18Boys.pdf?v=new"
+        },
+        {
+          "round": 3,
+          "games": [
+            183,
+            115,
+            155,
+            178
+          ],
+          "total": 631,
+          "cumulative_total": 1901,
+          "cumulative_average": 158.42,
+          "position": 1112,
+          "tied": true,
+          "source_updated_at": "2025-07-16T23:21:00-05:00",
+          "source_url": "https://scores.bowl.com/2025-JG/Qualifying_Round%203_U18Boys.pdf?v=new"
+        },
+        {
+          "round": 4,
+          "games": [
+            200,
+            183,
+            147,
+            200
+          ],
+          "total": 730,
+          "cumulative_total": 2631,
+          "cumulative_average": 164.44,
+          "position": 1009,
+          "tied": true,
+          "source_updated_at": "2025-07-17T23:08:00-05:00",
+          "source_url": "https://scores.bowl.com/2025-JG/Qualifying_Round%204_U18Boys.pdf?v=new"
+        }
+      ],
+      "final_qualifying": {
+        "games_complete": 16,
+        "total": 2631,
+        "average": 164.44,
+        "position": 1009,
+        "tied": true,
+        "field_size": 1341
+      }
+    }
+  },
   "alabama_bowlers": [
     {
       "rank": 4,
@@ -273,6 +416,7 @@
   ],
   "site": {
     "built_by": "Jason Wix",
+    "url": "https://jasonwix.github.io/jack-wix-junior-gold/",
     "branding": {
       "logo": "assets/junior-gold-2026-logo.png",
       "colors": {

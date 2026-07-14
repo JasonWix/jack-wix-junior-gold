@@ -28,6 +28,7 @@ ROUNDS = [f"Qualifying Round {number}" for number in range(1, 5)]
 EXPECTED_U18B_SQUADS = {1, 2, 11, 12, 21, 22, 31, 32}
 CENTRAL = ZoneInfo("America/Chicago")
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
+HISTORY_LIMIT = 96
 
 REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; JackWixJuniorGoldDashboard/2.0)",
@@ -283,6 +284,55 @@ def provisional_cut(latest: Report) -> dict | None:
     }
 
 
+def build_history_snapshot(
+    current: dict,
+    cut_projection: dict,
+    report: Report,
+    checked_at: datetime,
+) -> dict:
+    projected_total = cut_projection.get("projected_final_total")
+    return {
+        "observed_at": checked_at.isoformat(),
+        "source_updated_at": report.updated_at.isoformat(),
+        "report": ROUNDS[report.round_number - 1],
+        "source_url": f"{report.url}?v=new",
+        "games_complete": current.get("games_complete"),
+        "position": current.get("position"),
+        "field_size": current.get("field_size"),
+        "total": current.get("total"),
+        "average": current.get("average"),
+        "pins_from_cut": current.get("pins_from_cut"),
+        "needed_average": current.get("needed_average"),
+        "projected_cut_total": projected_total,
+        "cut_pace_average": (
+            round(projected_total / 16, 2) if projected_total is not None else None
+        ),
+    }
+
+
+def append_history_snapshot(data: dict, snapshot: dict) -> bool:
+    """Append only meaningful official changes and keep the payload bounded."""
+    history = [item for item in data.get("history", []) if isinstance(item, dict)]
+    comparison_keys = (
+        "source_updated_at",
+        "report",
+        "games_complete",
+        "position",
+        "field_size",
+        "total",
+        "average",
+        "pins_from_cut",
+        "needed_average",
+        "projected_cut_total",
+    )
+    if history and all(history[-1].get(key) == snapshot.get(key) for key in comparison_keys):
+        data["history"] = history[-HISTORY_LIMIT:]
+        return False
+    history.append(snapshot)
+    data["history"] = history[-HISTORY_LIMIT:]
+    return True
+
+
 def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) -> dict:
     previous_source = data.get("source_status", {})
     if not reports:
@@ -385,6 +435,10 @@ def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) ->
         "age_minutes": age_minutes,
         "valid_reports": [report.round_number for report in reports],
     }
+    append_history_snapshot(
+        data,
+        build_history_snapshot(current, data["cut_projection"], jack_report, checked_at),
+    )
     data["updated_at"] = checked_at.isoformat()
     return data
 

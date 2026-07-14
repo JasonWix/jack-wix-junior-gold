@@ -1,10 +1,13 @@
 import importlib.util
+import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "update_results.py"
+DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
 SPEC = importlib.util.spec_from_file_location("update_results", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
@@ -90,6 +93,82 @@ class ParserTests(unittest.TestCase):
         dashboard = {"current": {}, "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)]}
         MODULE.update_dashboard(dashboard, [first, second], second.updated_at)
         self.assertEqual(dashboard["current"]["field_size"], 3)
+
+    def test_history_does_not_duplicate_unchanged_results(self):
+        rows = MODULE.parse_standings(ROUND_ONE, 1)
+        report = MODULE.Report(1, "https://example.test/r1.pdf", ROUND_ONE, MODULE.parse_source_updated_at(ROUND_ONE), rows)
+        dashboard = {"current": {}, "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)]}
+
+        MODULE.update_dashboard(dashboard, [report], report.updated_at)
+        MODULE.update_dashboard(dashboard, [report], report.updated_at.replace(minute=57))
+
+        self.assertEqual(len(dashboard["history"]), 1)
+        self.assertEqual(dashboard["history"][0]["games_complete"], 4)
+
+    def test_history_appends_when_a_new_block_posts(self):
+        first_rows = MODULE.parse_standings(ROUND_ONE, 1)
+        second_rows = MODULE.parse_standings(ROUND_TWO, 2)
+        first = MODULE.Report(1, "https://example.test/r1.pdf", ROUND_ONE, MODULE.parse_source_updated_at(ROUND_ONE), first_rows)
+        second = MODULE.Report(2, "https://example.test/r2.pdf", ROUND_TWO, MODULE.parse_source_updated_at(ROUND_TWO), second_rows)
+        dashboard = {"current": {}, "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)]}
+
+        MODULE.update_dashboard(dashboard, [first], first.updated_at)
+        MODULE.update_dashboard(dashboard, [first, second], second.updated_at)
+
+        self.assertEqual([item["games_complete"] for item in dashboard["history"]], [4, 8])
+        self.assertEqual(dashboard["history"][-1]["position"], 200)
+        self.assertEqual(dashboard["history"][-1]["source_url"], "https://example.test/r2.pdf?v=new")
+        self.assertAlmostEqual(
+            dashboard["history"][-1]["cut_pace_average"],
+            dashboard["history"][-1]["projected_cut_total"] / 16,
+            places=2,
+        )
+
+    def test_archived_2025_comparison_is_internally_consistent(self):
+        data = json.loads(DATA.read_text(encoding="utf-8"))
+        previous = data["year_comparison"]["previous_year"]
+        running_total = 0
+
+        self.assertEqual(previous["year"], 2025)
+        self.assertEqual(previous["division"], "U18 Boys")
+        self.assertEqual(previous["field_size"], 1341)
+        self.assertEqual(len(previous["blocks"]), 4)
+
+        for round_number, block in enumerate(previous["blocks"], start=1):
+            self.assertEqual(block["round"], round_number)
+            self.assertEqual(len(block["games"]), 4)
+            self.assertEqual(sum(block["games"]), block["total"])
+            running_total += block["total"]
+            self.assertEqual(block["cumulative_total"], running_total)
+            self.assertAlmostEqual(
+                block["cumulative_average"],
+                round(running_total / (round_number * 4), 2),
+                places=2,
+            )
+            self.assertTrue(block["source_url"].startswith("https://scores.bowl.com/2025-JG/"))
+
+        final = previous["final_qualifying"]
+        self.assertEqual(final["total"], running_total)
+        self.assertEqual(final["total"], 2631)
+        self.assertEqual(final["position"], 1009)
+        self.assertEqual(final["field_size"], 1341)
+        self.assertAlmostEqual(final["average"], round(running_total / 16, 2), places=2)
+
+    def test_live_updater_preserves_archived_2025_comparison(self):
+        data = json.loads(DATA.read_text(encoding="utf-8"))
+        expected = deepcopy(data["year_comparison"])
+        rows = MODULE.parse_standings(ROUND_ONE, 1)
+        report = MODULE.Report(
+            1,
+            "https://example.test/r1.pdf",
+            ROUND_ONE,
+            MODULE.parse_source_updated_at(ROUND_ONE),
+            rows,
+        )
+
+        MODULE.update_dashboard(data, [report], report.updated_at)
+
+        self.assertEqual(data["year_comparison"], expected)
 
 
 if __name__ == "__main__":
