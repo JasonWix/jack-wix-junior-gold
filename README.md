@@ -139,6 +139,7 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - A qualifying-to-match-play tournament path tracker that does not imply advancement before it is official.
 - One-tap family sharing with a copy fallback.
 - Browser-saved favorite state bowlers and a compact comparison view.
+- A footer version loaded from `VERSION`, with an automatic increment after every merged pull request.
 
 
 ## Latest dashboard update
@@ -150,6 +151,21 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - Other bowlers' equipment is intentionally excluded.
 - The selected-state table becomes stacked cards on smaller screens.
 - Section order and visibility are personal to each browser and can be changed without altering the official data.
+
+
+## Dashboard versioning
+
+The bottom of the page displays `Dashboard version vN`. The number is stored in
+the repository's `VERSION` file so the deployed page and source code always use
+the same value.
+
+`.github/workflows/bump-version.yml` runs only after a pull request is actually
+merged. It starts from the newest `main`, increases the number once, and retries
+the push if an automated results update reaches `main` first. That version-only
+commit triggers the existing GitHub Pages workflow, so the new footer value is
+published automatically. The pull request number is recorded in the commit so
+re-running the same workflow cannot count one merge twice. Direct pushes and
+closed, unmerged pull requests do not change the version.
 
 
 ## U18 Boys field size

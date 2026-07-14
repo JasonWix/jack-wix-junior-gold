@@ -1831,9 +1831,20 @@ function startCountdown(schedule){
   };
   update(); setInterval(update,1000);
 }
+async function loadDashboardVersion(){
+  const response=await fetch(`VERSION?v=${Date.now()}`,{cache:"no-store"});
+  if(!response.ok) throw new Error(`Dashboard version request failed: ${response.status}`);
+  const version=(await response.text()).trim();
+  if(!/^\d+$/.test(version)) throw new Error(`Invalid dashboard version: ${version}`);
+  setText("dashboard-version",`Dashboard version v${version}`);
+}
 setupCollapsibleSections();
 setupSectionControls();
 setupSectionVisibilityManager();
 setupBowlerDialog();
 setupShareButton();
+loadDashboardVersion().catch(error=>{
+  console.error(error);
+  setText("dashboard-version","Dashboard version unavailable");
+});
 load().catch(err=>{console.error(err);setText("next-title","Unable to load dashboard data")});

@@ -1,0 +1,72 @@
+name: Bump dashboard version
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dashboard-version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out the latest main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Increment and publish the dashboard version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          pr_number="${{ github.event.pull_request.number }}"
+          marker="after PR #${pr_number}"
+
+          # A results refresh may reach main while this job is running. Always
+          # restart from the newest main branch and retry a rejected push.
+          for attempt in 1 2 3; do
+            echo "Version attempt $attempt of 3"
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Re-running the same completed workflow must not count the same
+            # merged pull request twice.
+            if git log --format=%s -- VERSION | grep -Fq "$marker"; then
+              echo "PR #${pr_number} has already incremented the dashboard version."
+              exit 0
+            fi
+
+            current="$(tr -d '[:space:]' < VERSION)"
+            if ! [[ "$current" =~ ^[0-9]+$ ]]; then
+              echo "VERSION must contain one whole number; found: $current"
+              exit 1
+            fi
+
+            next=$((current + 1))
+            printf '%s\n' "$next" > VERSION
+            git add VERSION
+            git commit -m "Bump dashboard version to v${next} after PR #${pr_number}"
+
+            if git push origin HEAD:main; then
+              echo "Dashboard version v${next} published."
+              exit 0
+            fi
+
+            echo "Main changed before the version push completed. Retrying..."
+            sleep $((attempt * 3))
+          done
+
+          echo "Unable to publish the dashboard version after 3 attempts."
+          exit 1

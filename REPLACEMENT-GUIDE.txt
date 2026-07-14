@@ -1,4 +1,4 @@
-JACK WIX JUNIOR GOLD DASHBOARD — PERSONALIZED LAYOUT V6
+JACK WIX JUNIOR GOLD DASHBOARD — VERSIONED PERSONALIZED LAYOUT V7
 
 This ZIP contains the complete repository except for Git history. It includes
 the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
@@ -20,7 +20,8 @@ FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
    repository folder. Choose Replace or Merge when macOS asks.
 7. Confirm the replacement includes data/bowlers.json,
    scripts/build_2025_archive.py, scripts/update_results.py, app.js,
-   index.html, styles.css, and .github/workflows/update-results.yml.
+   index.html, styles.css, VERSION, .github/workflows/update-results.yml, and
+   .github/workflows/bump-version.yml.
 8. Commit with this summary:
    Personalize dashboard for selected bowlers
 9. Click Push origin.
@@ -49,6 +50,9 @@ WHAT THIS UPDATE ADDS
   active, while keeping their headings visible in the display manager.
 - Never infer missing individual game scores. Derived 2025 Day 3 totals are
   explicitly labeled and use adjacent official cumulative totals only.
+- Display the dashboard version at the bottom of every page and automatically
+  increase it after each pull request is merged. The included VERSION file is
+  v5; merging pull request #6 publishes v6.
 
 EXPECTED CURRENT 2026 RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
 

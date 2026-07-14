@@ -1008,6 +1008,7 @@ footer{
   text-align:center;
 }
 footer span+span::before{content:"•";margin-right:18px;opacity:.65}
+#dashboard-version{color:#fff2b1;font-weight:800}
 
 @media (max-width:1040px){
   .hero{grid-template-columns:minmax(0,1fr) minmax(270px,330px)}
