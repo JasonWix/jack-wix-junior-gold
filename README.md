@@ -2,6 +2,10 @@
 
 A mobile-friendly GitHub Pages dashboard for Junior Gold families. The 2026 explorer covers every official U12, U14, U16, and U18 boys and girls participant, while Jack Wix remains the personalized default view.
 
+## Family-first home view
+
+The default page is designed for relatives and friends who do not need to understand tournament terminology. It immediately shows Jack's current position and field size, total pins, average, qualifying progress, latest game scores, next block, countdown, and official-results freshness. The Bowler Explorer, year comparison, cut analysis, complete schedule, state leaderboard, equipment, and display settings remain available inside one collapsed **More tournament details** area.
+
 ## Publish
 
 1. Create a **public** GitHub repository, preferably named `jack-wix-junior-gold`.
@@ -31,9 +35,9 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 ## Selected bowler and display controls
 
-Selecting a 2025 or 2026 profile updates the full dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, archived comparison, and state-leaderboard baseline. Jack-only sections—personal schedule, equipment, and last-visit summary—are disabled automatically when another bowler is active.
+Selecting a 2025 or 2026 profile updates the family summary and the full detailed dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, archived comparison, and state-leaderboard baseline. Jack-only sections—personal schedule, equipment, and last-visit summary—are disabled automatically when another bowler is active.
 
-Every dashboard section is collapsed on each page load. The guide starts first, Jack's equipment starts hidden, and **Arrange and choose sections** lets each visitor show, hide, and drag sections into a preferred order. Arrow buttons provide the same ordering control on phones and keyboards. Order and visibility choices are saved in that browser; sections without data for the active selection remain disabled and explain why.
+The family summary stays visible. **More tournament details** and every section inside it are collapsed on each page load. Within that area, **Arrange and choose sections** lets each visitor show, hide, and drag detailed sections into a preferred order. Arrow buttons provide the same ordering control on phones and keyboards. Order and visibility choices are saved in that browser; sections without data for the active selection remain disabled and explain why.
 
 ## Bowler Explorer
 
