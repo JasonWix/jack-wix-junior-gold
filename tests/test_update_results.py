@@ -144,6 +144,45 @@ class ParserTests(unittest.TestCase):
             places=2,
         )
 
+    def test_source_freshness_uses_newest_timestamp_not_highest_round(self):
+        first_rows = MODULE.parse_standings(ROUND_ONE, 1)
+        older_round_two = ROUND_TWO.replace(
+            "Jul 14, 2026 10:20 PM",
+            "Jul 13, 2026 05:00 PM",
+        )
+        second_rows = MODULE.parse_standings(older_round_two, 2)
+        first = MODULE.Report(
+            1,
+            "https://example.test/r1.pdf",
+            ROUND_ONE,
+            MODULE.parse_source_updated_at(ROUND_ONE),
+            first_rows,
+        )
+        second = MODULE.Report(
+            2,
+            "https://example.test/r2.pdf",
+            older_round_two,
+            MODULE.parse_source_updated_at(older_round_two),
+            second_rows,
+        )
+        dashboard = {
+            "current": {},
+            "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)],
+        }
+
+        MODULE.update_dashboard(dashboard, [first, second], first.updated_at)
+
+        self.assertEqual(dashboard["current"]["games_complete"], 8)
+        self.assertEqual(dashboard["source_status"]["report"], "Qualifying Round 1")
+        self.assertEqual(
+            dashboard["source_status"]["last_updated_at"],
+            first.updated_at.isoformat(),
+        )
+        self.assertEqual(
+            dashboard["source_status"]["source_url"],
+            "https://example.test/r1.pdf?v=new",
+        )
+
     def test_archived_2025_comparison_is_internally_consistent(self):
         data = json.loads(DATA.read_text(encoding="utf-8"))
         previous = data["year_comparison"]["previous_year"]

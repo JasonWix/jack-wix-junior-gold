@@ -210,6 +210,23 @@ h2{font-size:clamp(1.3rem,2.5vw,1.9rem);line-height:1.15}
 .family-status-strip strong{font-size:.76rem}
 .family-status-strip div span{color:var(--muted);font-size:.66rem}
 .family-status-strip a{color:#fff2b1;font-size:.69rem;font-weight:900;text-decoration:none;white-space:nowrap}
+.family-status-actions{display:flex!important;align-items:center!important;justify-content:flex-end;gap:8px!important}
+.family-status-actions button{
+  min-height:32px;
+  padding:6px 10px;
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:9px;
+  background:rgba(255,255,255,.1);
+  color:#fff;
+  font-size:.67rem;
+  font-weight:900;
+  cursor:pointer;
+}
+.family-status-actions button:hover,.family-status-actions button:focus-visible{background:rgba(255,255,255,.18)}
+.family-status-actions button:disabled{opacity:.58;cursor:wait}
+.family-status-actions button.has-update{border-color:rgba(157,255,128,.7);background:rgba(67,185,41,.24);color:#dfffd6}
+.family-refresh-status{grid-column:2/-1;min-height:0;color:#fff2b1;font-size:.64rem;font-weight:800}
+.family-refresh-status:empty{display:none}
 
 .family-overview{
   position:relative;
@@ -613,6 +630,8 @@ h2{font-size:clamp(1.3rem,2.5vw,1.9rem);line-height:1.15}
   text-decoration:none;
   white-space:nowrap;
 }
+.source-status-actions{display:flex;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.owner-check-link{border:1px solid rgba(248,195,34,.45);background:rgba(248,195,34,.12);color:#fff2b1}
 
 .muted{color:var(--muted)}
 .metrics{
@@ -1219,6 +1238,7 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
     align-items:flex-start;
     flex-direction:column;
   }
+  .source-status-actions{display:grid;width:100%;grid-template-columns:1fr}
   .source-link{width:100%;text-align:center}
   .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .metric-card{min-height:116px;padding:16px}
@@ -1936,7 +1956,8 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
 
 @media (max-width:680px){
   .family-status-strip{grid-template-columns:auto minmax(0,1fr)}
-  .family-status-strip a{grid-column:2}
+  .family-status-actions{grid-column:2;justify-content:flex-start}
+  .family-refresh-status{grid-column:2}
   .family-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .family-now-grid{grid-template-columns:1fr}
   .family-more>summary{align-items:flex-start}
