@@ -6,6 +6,8 @@ let explorerSelectedDivision = "U18B";
 let activeDashboardContext = null;
 let defaultVisitView = null;
 let familyCountdownTimer = null;
+let dashboardAutoRefreshTimer = null;
+let pendingDashboardUpdate = false;
 
 const STATE_NAMES = {
   AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
@@ -534,6 +536,47 @@ function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedul
 }
 
 function setText(id,v){document.getElementById(id).textContent=v}
+
+async function checkForPublishedResults({manual=false}={}){
+  const button=document.getElementById("refresh-results");
+  const status=document.getElementById("family-refresh-status");
+  if(!button || !status || !dashboardData) return;
+  if(pendingDashboardUpdate){
+    if(manual) location.reload();
+    return;
+  }
+
+  button.disabled=true;
+  if(manual) status.textContent="Checking the published dashboard…";
+  try{
+    const response=await fetch(`data/dashboard.json?v=${Date.now()}`,{cache:"no-store"});
+    if(!response.ok) throw new Error(`Dashboard refresh request failed: ${response.status}`);
+    const latest=await response.json();
+    if(latest.updated_at && latest.updated_at!==dashboardData.updated_at){
+      pendingDashboardUpdate=true;
+      button.textContent="Load new results";
+      button.classList.add("has-update");
+      status.textContent="New published results are ready.";
+      return;
+    }
+    if(manual) status.textContent="You’re viewing the latest published dashboard.";
+  }catch(error){
+    console.error(error);
+    if(manual) status.textContent="Unable to check for published results right now.";
+  }finally{
+    button.disabled=false;
+  }
+}
+
+function setupDashboardRefresh(){
+  document.getElementById("refresh-results")?.addEventListener("click",()=>{
+    checkForPublishedResults({manual:true});
+  });
+  dashboardAutoRefreshTimer=setInterval(()=>checkForPublishedResults(),120000);
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible") checkForPublishedResults();
+  });
+}
 
 function escapeHtml(value){
   return String(value ?? "")
@@ -2127,6 +2170,7 @@ setupSectionControls();
 setupSectionVisibilityManager();
 setupBowlerDialog();
 setupShareButton();
+setupDashboardRefresh();
 loadDashboardVersion().catch(error=>{
   console.error(error);
   setText("dashboard-version","Dashboard version unavailable");

@@ -275,11 +275,11 @@ def fetch_reports(
                 raise ValueError(f"PDF does not contain a valid {DIVISIONS[division_code]} standings table")
             reports.append(Report(round_number, links[round_number], text, updated_at, rows, division_code))
             print(
-                f"Round {round_number}: {len(rows)} bowlers; "
+                f"{division_code} Round {round_number}: {len(rows)} bowlers; "
                 f"official timestamp {updated_at.isoformat()}"
             )
         except Exception as exc:
-            print(f"Round {round_number}: {exc}")
+            print(f"{division_code} Round {round_number}: {exc}")
     return reports, links
 
 
@@ -680,7 +680,10 @@ def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) ->
         data["updated_at"] = checked_at.isoformat()
         return data
 
-    latest = max(reports, key=lambda report: (report.round_number, report.updated_at))
+    # Freshness answers "when did Bowl.com most recently change a valid U18B
+    # report?" and must not prefer an older timestamp merely because it belongs
+    # to a higher qualifying round.
+    freshest = max(reports, key=lambda report: report.updated_at)
     jack_reports = [report for report in reports if row_for_athlete(report.rows)]
     if not jack_reports:
         raise RuntimeError(f"{ATHLETE} was not found in any valid report")
@@ -761,15 +764,15 @@ def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) ->
         "complete_note": "All expected Day 1 U18 Boys squads are represented; this Alabama list reflects the latest official report.",
     }
 
-    age_minutes = max(0, int((checked_at - latest.updated_at).total_seconds() / 60))
+    age_minutes = max(0, int((checked_at - freshest.updated_at).total_seconds() / 60))
     data["source_status"] = {
         "status": "current" if age_minutes <= 180 else "delayed",
-        "last_updated_at": latest.updated_at.isoformat(),
+        "last_updated_at": freshest.updated_at.isoformat(),
         "last_checked_at": checked_at.isoformat(),
-        "report": ROUNDS[latest.round_number - 1],
-        "source_url": f"{latest.url}?v=new",
+        "report": ROUNDS[freshest.round_number - 1],
+        "source_url": f"{freshest.url}?v=new",
         "age_minutes": age_minutes,
-        "valid_reports": [report.round_number for report in reports],
+        "valid_reports": sorted({report.round_number for report in reports}),
     }
     append_history_snapshot(
         data,

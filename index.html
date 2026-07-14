@@ -54,7 +54,11 @@
         <strong id="family-source-label">Checking the latest Bowl.com results…</strong>
         <span id="family-source-detail"></span>
       </div>
-      <a id="family-source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official report <span aria-hidden="true">↗</span></a>
+      <div class="family-status-actions">
+        <button id="refresh-results" type="button">Check for updates</button>
+        <a id="family-source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official report <span aria-hidden="true">↗</span></a>
+      </div>
+      <span id="family-refresh-status" class="family-refresh-status" role="status" aria-live="polite"></span>
     </section>
 
     <section id="family-overview" class="family-overview" aria-labelledby="family-headline">
@@ -303,7 +307,10 @@
       </summary>
       <div class="section-body source-status-body" aria-live="polite">
         <p id="source-status-detail" class="muted"></p>
-        <a id="source-report-link" class="source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">View source ↗</a>
+        <div class="source-status-actions">
+          <a id="source-report-link" class="source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">View source ↗</a>
+          <a class="source-link owner-check-link" href="https://github.com/JasonWix/jack-wix-junior-gold/actions/workflows/update-results.yml" target="_blank" rel="noopener" title="Requires GitHub sign-in and repository access">Owner: run Bowl.com check ↗</a>
+        </div>
       </div>
     </details>
 

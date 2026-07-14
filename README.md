@@ -200,7 +200,9 @@ The GitHub Actions updater uses a date-specific tournament schedule in Central T
 - Hourly overnight during qualifying.
 - The workflow can still be run manually from the Actions tab at any time.
 
-GitHub cron expressions use UTC, so the workflow file already includes the correct five-hour conversion for Minnesota daylight time.
+The requested schedule is not a delivery guarantee: GitHub can delay or drop scheduled events during periods of high Actions load. The cron minutes are intentionally offset from the start of the hour to reduce that risk. GitHub cron expressions use UTC, so the workflow file includes the correct five-hour conversion for Minnesota daylight time.
+
+The public **Check for updates** button checks GitHub Pages for a newly deployed dashboard and offers to load it without disrupting someone who is reading the page. It cannot safely start GitHub Actions directly because this is a public static site and embedding a repository token would expose it. The detailed results-status section includes an **Owner: run Bowl.com check** link; after signing in to GitHub, the repository owner can use **Run workflow** to force the server-side Bowl.com parser immediately.
 
 ## Updater repair: validated parser v3
 
@@ -213,7 +215,7 @@ The repaired collector:
 - Rejects the valid-PDF `Results Coming Soon` placeholders for unpublished rounds.
 - Parses standings rows relative to `Squad NN Day N`, then validates game, block, grand-total, and average arithmetic.
 - Handles Bowl.com exceptions such as a missing state and a USBC ID joined to a bowler name.
-- Uses the newest valid qualifying report for rank, total, average, participant count, complete state browsing, and source timestamp.
+- Uses the newest valid report containing a selected bowler for that bowler's scores, while the freshness indicator uses the newest official U18 Boys timestamp across all valid rounds.
 - Preserves existing dashboard results if no valid report can be fetched.
 - Includes parser regression tests that run before every automated refresh.
 - Validates the generated dashboard before committing it.
