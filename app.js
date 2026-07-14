@@ -10,7 +10,25 @@ const STATE_NAMES = {
   AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon",FC:"Foreign country"
 };
 
-const SECTION_VISIBILITY_KEY = "jack-wix-dashboard:section-visibility:v1";
+const SECTION_VISIBILITY_KEY = "jack-wix-dashboard:section-visibility:v2";
+const SECTION_ORDER_KEY = "jack-wix-dashboard:section-order:v1";
+const DEFAULT_SECTION_VISIBILITY = {"section-equipment":false};
+const DEFAULT_SECTION_ORDER = [
+  "section-dashboard-guide",
+  "section-bowler-explorer",
+  "section-qualifying-overview",
+  "section-since-last-visit",
+  "section-results-status",
+  "section-current-statistics",
+  "section-year-comparison",
+  "section-progress",
+  "section-cut-status",
+  "section-scores",
+  "section-schedule",
+  "section-tournament-path",
+  "section-alabama",
+  "section-equipment"
+];
 const LAST_VISIT_KEY = "jack-wix-dashboard:last-visit";
 const FAVORITES_KEY = "jack-wix-dashboard:favorite-alabama-bowlers";
 let favoriteBowlers = loadStoredArray(FAVORITES_KEY);
@@ -59,11 +77,131 @@ function sectionDisplayName(section){
     || section.id.replace(/^section-/,"").replaceAll("-"," ");
 }
 
+function sectionUserVisible(saved,sectionId){
+  if(Object.prototype.hasOwnProperty.call(saved,sectionId)) return saved[sectionId]!==false;
+  return DEFAULT_SECTION_VISIBILITY[sectionId]!==false;
+}
+
+function applyStoredSectionOrder(){
+  const main=document.querySelector("main.container");
+  const sections=[...document.querySelectorAll("details.dashboard-section")];
+  if(!main || !sections.length) return;
+  const byId=new Map(sections.map(section=>[section.id,section]));
+  const saved=readStoredJson(SECTION_ORDER_KEY,[]);
+  const requested=Array.isArray(saved) && saved.length ? saved : DEFAULT_SECTION_ORDER;
+  const ids=[...requested.filter(id=>byId.has(id)),...sections.map(section=>section.id).filter(id=>!requested.includes(id))];
+  ids.forEach(id=>main.append(byId.get(id)));
+}
+
+function saveSectionOrder(){
+  writeStoredJson(SECTION_ORDER_KEY,[...document.querySelectorAll("details.dashboard-section")].map(section=>section.id));
+}
+
+function refreshSectionOrderButtons(){
+  const rows=[...document.querySelectorAll("[data-section-visibility]")];
+  rows.forEach((row,index)=>{
+    row.querySelector(".section-order-up").disabled=index===0;
+    row.querySelector(".section-order-down").disabled=index===rows.length-1;
+  });
+}
+
+function clearSectionDragState(){
+  document.querySelectorAll("[data-section-visibility]").forEach(row=>row.classList.remove("dragging","drop-before","drop-after"));
+}
+
+function moveDashboardSection(sourceId,targetId,after=false){
+  if(!sourceId || !targetId || sourceId===targetId) return;
+  const source=document.getElementById(sourceId);
+  const target=document.getElementById(targetId);
+  const sourceRow=document.querySelector(`[data-section-visibility="${sourceId}"]`);
+  const targetRow=document.querySelector(`[data-section-visibility="${targetId}"]`);
+  if(!source || !target || !sourceRow || !targetRow) return;
+  if(after){
+    target.after(source);
+    targetRow.after(sourceRow);
+  }else{
+    target.before(source);
+    targetRow.before(sourceRow);
+  }
+  saveSectionOrder();
+  refreshSectionOrderButtons();
+  const position=[...document.querySelectorAll("details.dashboard-section")].findIndex(section=>section.id===sourceId)+1;
+  setText("section-order-status",`${sectionDisplayName(source)} moved to position ${position}.`);
+}
+
+function moveDashboardSectionOneStep(sectionId,direction){
+  const rows=[...document.querySelectorAll("[data-section-visibility]")];
+  const index=rows.findIndex(row=>row.dataset.sectionVisibility===sectionId);
+  const targetIndex=index+direction;
+  if(index<0 || targetIndex<0 || targetIndex>=rows.length) return;
+  moveDashboardSection(sectionId,rows[targetIndex].dataset.sectionVisibility,direction>0);
+}
+
+function bindSectionOrderControls(container){
+  container.querySelectorAll(".section-order-handle").forEach(handle=>{
+    handle.addEventListener("click",event=>event.preventDefault());
+    handle.addEventListener("pointerdown",()=>{handle.closest("[data-section-visibility]").dataset.dragReady="true";});
+    handle.addEventListener("pointerup",()=>{delete handle.closest("[data-section-visibility]").dataset.dragReady;});
+    handle.addEventListener("pointercancel",()=>{delete handle.closest("[data-section-visibility]").dataset.dragReady;});
+    handle.addEventListener("dragstart",event=>{
+      const row=handle.closest("[data-section-visibility]");
+      row.classList.add("dragging");
+      event.dataTransfer.effectAllowed="move";
+      event.dataTransfer.setData("text/plain",row.dataset.sectionVisibility);
+      event.stopPropagation();
+    });
+    handle.addEventListener("dragend",event=>{
+      delete handle.closest("[data-section-visibility]").dataset.dragReady;
+      clearSectionDragState();
+      event.stopPropagation();
+    });
+  });
+  container.querySelectorAll("[data-section-visibility]").forEach(row=>{
+    row.addEventListener("dragstart",event=>{
+      if(row.dataset.dragReady!=="true"){
+        event.preventDefault();
+        return;
+      }
+      row.classList.add("dragging");
+      event.dataTransfer.effectAllowed="move";
+      event.dataTransfer.setData("text/plain",row.dataset.sectionVisibility);
+    });
+    row.addEventListener("dragend",()=>{
+      delete row.dataset.dragReady;
+      clearSectionDragState();
+    });
+    row.addEventListener("dragover",event=>{
+      event.preventDefault();
+      clearSectionDragState();
+      const after=event.clientY>row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+      row.classList.add(after?"drop-after":"drop-before");
+      event.dataTransfer.dropEffect="move";
+    });
+    row.addEventListener("dragleave",()=>row.classList.remove("drop-before","drop-after"));
+    row.addEventListener("drop",event=>{
+      event.preventDefault();
+      const sourceId=event.dataTransfer.getData("text/plain");
+      const after=row.classList.contains("drop-after");
+      moveDashboardSection(sourceId,row.dataset.sectionVisibility,after);
+      clearSectionDragState();
+    });
+    row.querySelector(".section-order-up").addEventListener("click",event=>{
+      event.preventDefault();
+      moveDashboardSectionOneStep(row.dataset.sectionVisibility,-1);
+    });
+    row.querySelector(".section-order-down").addEventListener("click",event=>{
+      event.preventDefault();
+      moveDashboardSectionOneStep(row.dataset.sectionVisibility,1);
+    });
+  });
+  refreshSectionOrderButtons();
+}
+
 function applySectionVisibility(){
   const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
   document.querySelectorAll("details.dashboard-section").forEach(section=>{
     const available=section.dataset.contextAvailable!=="false";
-    const userVisible=saved[section.id]!==false;
+    const userVisible=sectionUserVisible(saved,section.id);
     section.hidden=!available || !userVisible;
     const control=document.querySelector(`[data-section-visibility="${section.id}"]`);
     if(!control) return;
@@ -71,8 +209,8 @@ function applySectionVisibility(){
     input.checked=userVisible;
     input.disabled=!available;
     control.classList.toggle("unavailable",!available);
-    control.querySelector("span").textContent=sectionDisplayName(section);
-    control.querySelector("small").textContent=available ? "Available" : "No data for selected bowler";
+    control.querySelector(".section-visibility-label").textContent=sectionDisplayName(section);
+    control.querySelector(".section-visibility-status").textContent=available ? "Available" : "Unavailable for current selection";
   });
 }
 
@@ -84,23 +222,31 @@ function setSectionAvailability(sectionId,available){
 
 function refreshSectionVisibilityLabels(){
   document.querySelectorAll("details.dashboard-section").forEach(section=>{
-    const label=document.querySelector(`[data-section-visibility="${section.id}"] span`);
+    const label=document.querySelector(`[data-section-visibility="${section.id}"] .section-visibility-label`);
     if(label) label.textContent=sectionDisplayName(section);
   });
   applySectionVisibility();
 }
 
 function setupSectionVisibilityManager(){
+  applyStoredSectionOrder();
   const sections=[...document.querySelectorAll("details.dashboard-section")];
   const container=document.getElementById("section-visibility-options");
   if(!container) return;
   sections.forEach(section=>{section.dataset.contextAvailable="true";});
   container.innerHTML=sections.map(section=>`
-    <label class="section-visibility-option" data-section-visibility="${escapeHtml(section.id)}">
-      <input type="checkbox" checked>
-      <span>${escapeHtml(sectionDisplayName(section))}</span>
-      <small>Available</small>
-    </label>`).join("");
+    <div class="section-visibility-option" data-section-visibility="${escapeHtml(section.id)}" draggable="true">
+      <button class="section-order-handle" type="button" draggable="true" aria-label="Drag ${escapeHtml(sectionDisplayName(section))} to reorder" title="Drag to reorder">↕</button>
+      <label class="section-visibility-choice">
+        <input type="checkbox" ${sectionUserVisible({},section.id)?"checked":""}>
+        <span class="section-visibility-label">${escapeHtml(sectionDisplayName(section))}</span>
+        <small class="section-visibility-status">Available</small>
+      </label>
+      <div class="section-order-buttons" aria-label="Move ${escapeHtml(sectionDisplayName(section))}">
+        <button class="section-order-up" type="button" aria-label="Move ${escapeHtml(sectionDisplayName(section))} up" title="Move up">↑</button>
+        <button class="section-order-down" type="button" aria-label="Move ${escapeHtml(sectionDisplayName(section))} down" title="Move down">↓</button>
+      </div>
+    </div>`).join("");
 
   container.querySelectorAll("input").forEach(input=>{
     input.addEventListener("change",()=>{
@@ -111,6 +257,7 @@ function setupSectionVisibilityManager(){
       applySectionVisibility();
     });
   });
+  bindSectionOrderControls(container);
 
   document.getElementById("show-all-sections")?.addEventListener("click",()=>{
     const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
@@ -162,8 +309,6 @@ async function load(){
   renderProgress(d.history || [], d.current || {}, d.cut_projection || {});
   renderPerformanceHighlights(d.blocks || []);
   renderEquipment(d.equipment || {});
-  renderAlabamaStatus(d.alabama_status || {});
-  renderAlabama(d.alabama_bowlers || [], d.current.total);
   renderLastQualifier(d.schedule, d.blocks);
   renderSchedule(d.schedule);
   renderNextActions(d.schedule);
@@ -442,11 +587,12 @@ function applySelectedBowlerContext(year,yearData,profile){
     "section-scores":hasScores,
     "section-schedule":isDefaultJack,
     "section-tournament-path":selectedYear==="2026",
-    "section-alabama":isDefaultJack,
+    "section-alabama":Boolean(document.getElementById("explorer-state")?.value),
     "section-equipment":isDefaultJack,
     "section-dashboard-guide":true
   };
   Object.entries(availability).forEach(([id,available])=>setSectionAvailability(id,available));
+  if(bowlerExplorerData) refreshStateLeaderboard(false);
   refreshSectionVisibilityLabels();
 }
 
@@ -720,13 +866,18 @@ function renderExplorerProfile(year,yearData,profile){
   profileElement.hidden=false;
 }
 
-function selectExplorerProfile(year,id,{updateUrl=true,scroll=true}={}){
+function selectExplorerProfile(year,id,{updateUrl=true,scroll=true,syncState=true}={}){
   const yearData=explorerYearData(year);
   const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id);
   if(!profile) return false;
 
   setExplorerYear(year);
   explorerSelectedProfile=profile;
+  const stateSelect=document.getElementById("explorer-state");
+  const profileState=explorerStateValue(profile);
+  if(syncState && stateSelect && profileState!=="__NONE__" && [...stateSelect.options].some(option=>option.value===profileState)){
+    stateSelect.value=profileState;
+  }
   document.getElementById("explorer-search").value=profile.name;
   document.getElementById("explorer-results").innerHTML="";
   setText("explorer-search-status",`Showing ${profile.name}'s ${year} U18 Boys results.`);
@@ -800,6 +951,7 @@ function bindBowlerExplorer(){
     url.searchParams.delete("bowler");
     history.replaceState({},"",url);
     renderExplorerMatches();
+    refreshStateLeaderboard();
   });
   document.getElementById("explorer-clear").addEventListener("click",()=>clearExplorerProfile());
   document.getElementById("explorer-copy-link").addEventListener("click",copyExplorerProfileLink);
@@ -823,11 +975,15 @@ async function loadBowlerExplorer(){
   const requestedYear=params.get("year")==="2025" ? "2025" : "2026";
   const requestedState=String(params.get("state") || "").toUpperCase();
   const requestedBowler=params.get("bowler");
+  const requestedYearData=explorerYearData(requestedYear);
+  const requestedProfile=(requestedYearData?.bowlers || []).find(bowler=>bowler.id===requestedBowler);
+  const initialState=requestedState || (requestedProfile ? explorerStateValue(requestedProfile) : "AL");
   setExplorerYear(requestedYear);
-  populateExplorerStates(explorerYearData(requestedYear),requestedState);
-  if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false})) return;
+  populateExplorerStates(requestedYearData,initialState);
+  if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false,syncState:!requestedState})) return;
   renderExplorerMatches();
   restoreDefaultDashboardContext();
+  refreshStateLeaderboard();
 }
 
 function currentVisitSnapshot(data){
@@ -1299,58 +1455,94 @@ function renderYearComparison(comparison,data){
     <a href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official ${currentYear} results ↗</a>`;
 }
 
-function renderAlabamaStatus(status){
-  const pill=document.getElementById("alabama-status-pill");
-  const note=document.getElementById("alabama-status-note");
-  if(!pill || !note) return;
-
-  // Trust report coverage, not the wall clock. Bowl.com may post a squad late.
-  const isComplete=status.status==="complete";
-
-  pill.textContent=isComplete ? "Day 1 field complete" : "Partial Day 1 field";
-  pill.className=`pill ${isComplete ? "alabama-complete" : "alabama-partial"}`;
-  note.textContent=isComplete
-    ? (status.complete_note || "The Alabama bowler list is complete and reflects the latest Bowl.com report.")
-    : (status.partial_note || "Additional Alabama bowlers are scheduled later today. This list will expand as their scores are posted, and will be complete after today's squads.");
+function stateLeaderboardBaseline(yearData,bowlers){
+  const preferred=explorerSelectedProfile || activeDashboardContext?.profile;
+  const matched=preferred ? matchingExplorerProfile(preferred,yearData) : null;
+  return matched || (yearData?.bowlers || []).find(bowler=>isJackWix(bowler)) || bowlers[0] || null;
 }
 
-function renderAlabama(bowlers,jackTotal){
+function refreshStateLeaderboard(refreshVisibility=true){
+  const select=document.getElementById("explorer-state");
+  const yearData=explorerYearData(explorerSelectedYear);
+  const stateCode=select?.value || "";
+  const available=Boolean(yearData && stateCode && stateCode!=="__NONE__");
+  setSectionAvailability("section-alabama",available);
+  if(!available){
+    setText("state-leaderboard-eyebrow",`${explorerSelectedYear} state results`);
+    setText("alabama-title","State U18 Boys leaderboard");
+    if(refreshVisibility) refreshSectionVisibilityLabels();
+    return;
+  }
+
+  const stateName=STATE_NAMES[stateCode] || stateCode;
+  const bowlers=(yearData.bowlers || [])
+    .filter(bowler=>explorerStateValue(bowler)===stateCode)
+    .sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  const baseline=stateLeaderboardBaseline(yearData,bowlers);
+  const isFinal=yearData.status==="final";
+  const context={stateCode,stateName,year:String(yearData.year),fieldSize:yearData.field_size,baseline};
+
+  setText("state-leaderboard-eyebrow",`${yearData.year} selected state`);
+  setText("alabama-title",`${stateName} U18 Boys leaderboard`);
+  setText("favorites-title",`Favorite ${stateName} bowlers`);
+  setText("state-comparison-heading",`vs. ${baseline?.name || "selected bowler"}`);
+  const pill=document.getElementById("alabama-status-pill");
+  pill.textContent=isFinal ? `Final ${yearData.year} field` : `Live ${yearData.year} field`;
+  pill.className=`pill ${isFinal ? "alabama-complete" : "alabama-partial"}`;
+  setText(
+    "alabama-status-note",
+    `${bowlers.length.toLocaleString()} ${stateName} U18 Boys bowler${bowlers.length===1?"":"s"} in the ${isFinal?"final":"latest published"} official ${yearData.year} results.`
+  );
+  renderAlabama(bowlers,baseline,context);
+  if(refreshVisibility) refreshSectionVisibilityLabels();
+}
+
+function sameLeaderboardBowler(left,right){
+  if(!left || !right) return false;
+  if(left.id && right.id) return left.id===right.id;
+  return normalizeExplorerText(left.name)===normalizeExplorerText(right.name)
+    && normalizeExplorerText(left.hometown)===normalizeExplorerText(right.hometown);
+}
+
+function renderAlabama(bowlers,baseline,context){
   const body=document.getElementById("alabama-bowlers");
   if(!body) return;
   if(!bowlers.length){
-    body.innerHTML='<tr><td colspan="8" class="muted">No Alabama bowlers found in the latest report.</td></tr>';
-    renderFavoriteBowlers([],jackTotal);
+    body.innerHTML=`<tr><td colspan="8" class="muted">No ${escapeHtml(context.stateName)} bowlers found in these results.</td></tr>`;
+    renderFavoriteBowlers([],baseline,context);
     return;
   }
 
   body.innerHTML=bowlers.map((b,index)=>{
-    const isJack=b.name.toLowerCase()==="jack wix";
+    const isBaseline=sameLeaderboardBowler(b,baseline);
     const isFavorite=favoriteBowlers.includes(b.name);
-    const diff=isJack ? 0 : Number(b.total)-Number(jackTotal);
-    const diffText=diff===0 ? "Jack" : `${diff>0?"+":""}${diff}`;
+    const diff=baseline ? Number(b.total)-Number(baseline.total) : null;
+    const diffText=isBaseline ? "Baseline" : Number.isFinite(diff) ? `${diff>0?"+":""}${diff}` : "—";
+    const rank=b.rank ?? b.position;
+    const comparisonLabel=`vs. ${baseline?.name || "selected bowler"}`;
 
-    return `<tr class="${isJack?"jack":""}">
+    return `<tr class="${isBaseline?"comparison-anchor":""}">
       <td class="favorite-cell" data-label="Favorite">
         <button class="favorite-button" type="button" data-favorite-index="${index}" aria-pressed="${isFavorite}" aria-label="${isFavorite?"Remove":"Add"} ${escapeHtml(b.name)} ${isFavorite?"from":"to"} favorites">${isFavorite?"★":"☆"}</button>
       </td>
-      <td class="rank" data-label="Rank">#${b.rank}${b.tied?"T":""}</td>
+      <td class="rank" data-label="Rank">#${rank}${b.tied?"T":""}</td>
       <td class="bowler" data-label="Bowler">
         <button class="bowler-name-button" type="button" data-bowler-index="${index}" aria-label="View tournament details for ${escapeHtml(b.name)}">
-          ${escapeHtml(b.name)}${isJack?" ⭐":""}
+          ${escapeHtml(b.name)}${isBaseline?" ◆":""}
         </button>
       </td>
       <td data-label="Hometown">${escapeHtml(b.hometown)}</td>
       <td data-label="Games">${b.games_complete}</td>
       <td data-label="Total">${b.total}</td>
       <td data-label="Average">${Number(b.average).toFixed(2)}</td>
-      <td data-label="vs. Jack" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
+      <td data-label="${escapeHtml(comparisonLabel)}" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
     </tr>`;
   }).join("");
 
   body.querySelectorAll(".bowler-name-button").forEach(button=>{
     button.addEventListener("click",()=>{
       const bowler=bowlers[Number(button.dataset.bowlerIndex)];
-      openBowlerDialog(bowler,jackTotal);
+      openBowlerDialog(bowler,baseline,context);
     });
   });
 
@@ -1362,55 +1554,58 @@ function renderAlabama(bowlers,jackTotal){
       else favorites.add(bowler.name);
       favoriteBowlers=[...favorites];
       writeStoredJson(FAVORITES_KEY,favoriteBowlers);
-      renderAlabama(bowlers,jackTotal);
+      renderAlabama(bowlers,baseline,context);
     });
   });
 
-  renderFavoriteBowlers(bowlers,jackTotal);
+  renderFavoriteBowlers(bowlers,baseline,context);
 }
 
-function renderFavoriteBowlers(bowlers,jackTotal){
+function renderFavoriteBowlers(bowlers,baseline,context){
   const container=document.getElementById("favorite-bowlers");
   if(!container) return;
   const favorites=bowlers.filter(bowler=>favoriteBowlers.includes(bowler.name));
   if(!favorites.length){
-    container.innerHTML='<p class="favorites-empty">No favorites selected yet. Star Alabama bowlers to keep their latest position and average together here.</p>';
+    container.innerHTML=`<p class="favorites-empty">No favorites selected yet. Star ${escapeHtml(context.stateName)} bowlers to keep their position and average together here.</p>`;
     return;
   }
 
   container.innerHTML=favorites.map(bowler=>{
     const index=bowlers.indexOf(bowler);
-    const isJack=bowler.name.toLowerCase()==="jack wix";
-    const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
-    return `<article class="favorite-card ${isJack?"jack-favorite":""}">
+    const isBaseline=sameLeaderboardBowler(bowler,baseline);
+    const diff=baseline ? Number(bowler.total)-Number(baseline.total) : null;
+    const rank=bowler.rank ?? bowler.position;
+    return `<article class="favorite-card ${isBaseline?"comparison-anchor":""}">
       <button type="button" class="favorite-profile" data-bowler-index="${index}">${escapeHtml(bowler.name)}</button>
-      <div><span>Rank</span><strong>#${bowler.rank}${bowler.tied?"T":""}</strong></div>
+      <div><span>Rank</span><strong>#${rank}${bowler.tied?"T":""}</strong></div>
       <div><span>Average</span><strong>${Number(bowler.average).toFixed(2)}</strong></div>
-      <div><span>vs. Jack</span><strong>${isJack?"Jack":`${diff>0?"+":""}${diff}`}</strong></div>
+      <div><span>vs. ${escapeHtml(baseline?.name || "selected bowler")}</span><strong>${isBaseline?"Baseline":Number.isFinite(diff)?`${diff>0?"+":""}${diff}`:"—"}</strong></div>
     </article>`;
   }).join("");
 
   container.querySelectorAll(".favorite-profile").forEach(button=>{
-    button.addEventListener("click",()=>openBowlerDialog(bowlers[Number(button.dataset.bowlerIndex)],jackTotal));
+    button.addEventListener("click",()=>openBowlerDialog(bowlers[Number(button.dataset.bowlerIndex)],baseline,context));
   });
 }
 
-function openBowlerDialog(bowler,jackTotal){
+function openBowlerDialog(bowler,baseline,context){
   const dialog=document.getElementById("bowler-dialog");
   if(!dialog || !bowler) return;
 
-  const isJack=bowler.name.toLowerCase()==="jack wix";
-  const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
+  const isBaseline=sameLeaderboardBowler(bowler,baseline);
+  const diff=baseline ? Number(bowler.total)-Number(baseline.total) : null;
+  const rank=bowler.rank ?? bowler.position;
 
+  setText("state-bowler-dialog-kicker",`${context.stateName} bowler profile`);
   setText("bowler-dialog-title",bowler.name);
-  setText("bowler-dialog-hometown",bowler.hometown || "Alabama");
+  setText("bowler-dialog-hometown",bowler.hometown || context.stateName);
 
   const stats=[
-    ["Overall rank",`#${bowler.rank}${bowler.tied?"T":""}${dashboardData?.field_size?.current_report ? ` of ${dashboardData.field_size.current_report}` : ""}`],
+    ["Overall rank",`#${rank}${bowler.tied?"T":""}${context.fieldSize ? ` of ${Number(context.fieldSize).toLocaleString()}` : ""}`],
     ["Games complete",bowler.games_complete ?? "—"],
     ["Total pins",bowler.total ?? "—"],
     ["Average",bowler.average == null ? "—" : Number(bowler.average).toFixed(2)],
-    ["Compared with Jack",isJack ? "Jack" : `${diff>0?"+":""}${diff} pins`]
+    [`Compared with ${baseline?.name || "selected bowler"}`,isBaseline ? "Baseline" : Number.isFinite(diff) ? `${diff>0?"+":""}${diff} pins` : "—"]
   ];
 
   document.getElementById("bowler-dialog-stats").innerHTML=stats.map(([label,value])=>`
@@ -1430,7 +1625,7 @@ function openBowlerDialog(bowler,jackTotal){
       return `<article class="bowler-round-card">
         <h4>Round ${block.round || index+1}</h4>
         <div class="games">${games.length ? games.map(score=>`<span class="game">${score}</span>`).join("") : '<span class="muted">Scores not posted</span>'}</div>
-        <p>${total == null ? "Pending" : `${total} pins · ${(total/games.length).toFixed(2)} avg.`}</p>
+        <p>${total == null ? "Pending" : games.length ? `${total} pins · ${(total/games.length).toFixed(2)} avg.` : `${total} pins · individual games unavailable`}</p>
       </article>`;
     }).join("");
   }else if(Array.isArray(bowler.scores) && bowler.scores.length){

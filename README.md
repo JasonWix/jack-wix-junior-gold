@@ -23,16 +23,16 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
 - Keeps Jack's verified 2025 U18 Boys qualifying results as a fixed archive and compares them with 2026 after each matching four-game checkpoint.
 - The page automatically counts down to Jack's next Squad 1 qualifying block.
-- Includes an Alabama U18 Boys leaderboard with rank, hometown, games, total, average, and comparison to Jack.
-- Stores visitor-specific section choices, last-visit comparisons, and favorite Alabama bowlers only in that visitor's browser.
+- Builds a state-specific U18 Boys leaderboard from the explorer's selected year and state, with rank, hometown, games, total, average, and comparison to the active bowler.
+- Stores visitor-specific section visibility, section order, last-visit comparisons, and favorite state bowlers only in that visitor's browser.
 - `data/dashboard.json` contains a valid starting snapshot and can be edited manually if a PDF layout changes.
 - A selected bowler has a shareable `?year=YYYY&bowler=USBC-ID` profile URL. Profile sections are shown only when their underlying data exists.
 
 ## Selected bowler and display controls
 
-Selecting a 2025 or 2026 profile updates the full dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, and archived comparison. Jack-only sections—personal schedule, equipment, last-visit summary, and the Alabama dashboard leaderboard—are disabled automatically when another bowler is active.
+Selecting a 2025 or 2026 profile updates the full dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, archived comparison, and state-leaderboard baseline. Jack-only sections—personal schedule, equipment, and last-visit summary—are disabled automatically when another bowler is active.
 
-Every dashboard section is collapsed on each page load. The controls near the top can expand or collapse all currently available sections, and **Choose visible sections** lets each visitor hide or show individual sections. Visibility choices are saved in that browser; sections without data for the active bowler remain disabled and explain why.
+Every dashboard section is collapsed on each page load. The guide starts first, Jack's equipment starts hidden, and **Arrange and choose sections** lets each visitor show, hide, and drag sections into a preferred order. Arrow buttons provide the same ordering control on phones and keyboards. Order and visibility choices are saved in that browser; sections without data for the active selection remain disabled and explain why.
 
 ## Bowler Explorer
 
@@ -110,49 +110,46 @@ Jack finished 2025 qualifying with a 164.44 average, tied for 1009th in the 1,34
 - The cut-gap and needed-average tiles are explicitly labeled as placeholders, not official projections.
 - A cut explanation panel states that the first official cut is not set until all U18 Boys complete 16 qualifying games.
 - The top of the page links to Jack Wix Bowling on Facebook.
-- The Alabama leaderboard is labeled partial while additional Alabama bowlers compete later on July 13, and automatically changes to complete after today.
+- The state leaderboard follows the Bowler Explorer's selected year and state, and labels live 2026 fields separately from final 2025 fields.
 - Jack's Columbia 300 White Dot is identified as the white / Diamond version and uses a matching white-ball image.
 
 ## Responsive layout update
 
-The dashboard is ordered for family viewing:
+The default dashboard order begins with:
 
-1. Jack's identity, photo, Facebook page, and official results link
-2. Next and most recent qualifying blocks
-3. Bowl.com freshness status
-4. Current statistics and clearly labeled cut estimates
-5. 2025 vs. 2026 same-stage comparison
-6. 2026 progress and cut pace
-7. Scores by block
-8. Full qualifying schedule and tournament path
-9. Alabama leaderboard
-10. Registered equipment
-11. Dashboard explanation
+1. Dashboard guide
+2. Bowler Explorer
+3. Qualifying overview and official-results status
+4. Current statistics, comparison, progress, and cut estimate
+5. Scores, schedule, tournament path, and selected-state leaderboard
 
-The header, statistics, schedule, Alabama leaderboard, and equipment cards now reflow for tablet and phone screens. On smaller phones, the Alabama table becomes readable stacked cards instead of requiring horizontal scrolling.
+Visitors can change this order at any time. Registered equipment remains available for Jack but is hidden by default.
+
+The header, statistics, schedule, state leaderboard, equipment cards, and ordering controls reflow for tablet and phone screens. On smaller phones, the leaderboard becomes readable stacked cards instead of requiring horizontal scrolling.
 
 ## Family dashboard features
 
 - All sections collapsed by default, with Expand All and Collapse All controls for the current view.
-- A persistent top-of-page visibility manager for hiding or showing individual sections.
+- A persistent top-of-page manager for hiding, showing, and drag-reordering individual sections.
+- Up/down ordering buttons for touch and keyboard users.
 - A “Since your last visit” summary when official results change.
 - A block-level average-versus-estimated-cut chart and position history.
 - High game, low game, latest block, best block, and block-trend highlights.
 - Open in Maps, Add to Calendar, and BowlTV actions for the next qualifying block when applicable.
 - A qualifying-to-match-play tournament path tracker that does not imply advancement before it is official.
 - One-tap family sharing with a copy fallback.
-- Browser-saved favorite Alabama bowlers and a compact comparison view.
+- Browser-saved favorite state bowlers and a compact comparison view.
 
 
 ## Latest dashboard update
 
 - Uses the supplied Jack Wix Junior Gold banner as the full-width header.
 - Keeps a compact identity and action bar beneath the banner so important links remain readable on phones.
-- Alabama bowler names are selectable.
+- State-leaderboard bowler names are selectable.
 - Selecting a name opens a responsive profile with rank, hometown, games, total, average, comparison to Jack, and any posted qualifying game scores.
 - Other bowlers' equipment is intentionally excluded.
-- The Alabama table becomes stacked cards on smaller screens.
-- Section order prioritizes the next block, latest results, current stats, scores, schedule, Alabama standings, equipment, and explanatory notes.
+- The selected-state table becomes stacked cards on smaller screens.
+- Section order and visibility are personal to each browser and can be changed without altering the official data.
 
 
 ## U18 Boys field size
@@ -175,7 +172,7 @@ GitHub cron expressions use UTC, so the workflow file already includes the corre
 
 ## Updater repair: validated parser v3
 
-The previous parser read the numbers in `Squad 01 Day 1` as game scores. That produced impossible dashboard data such as `1, 1, 132, 190` and a 324 total for Jack. It also affected Alabama bowlers.
+The previous parser read the numbers in `Squad 01 Day 1` as game scores. That produced impossible dashboard data such as `1, 1, 132, 190` and a 324 total for Jack. It also affected state-leaderboard profiles.
 
 The repaired collector:
 
@@ -184,7 +181,7 @@ The repaired collector:
 - Rejects the valid-PDF `Results Coming Soon` placeholders for unpublished rounds.
 - Parses standings rows relative to `Squad NN Day N`, then validates game, block, grand-total, and average arithmetic.
 - Handles Bowl.com exceptions such as a missing state and a USBC ID joined to a bowler name.
-- Uses the newest valid qualifying report for rank, total, average, participant count, Alabama standings, and source timestamp.
+- Uses the newest valid qualifying report for rank, total, average, participant count, complete state browsing, and source timestamp.
 - Preserves existing dashboard results if no valid report can be fetched.
 - Includes parser regression tests that run before every automated refresh.
 - Validates the generated dashboard before committing it.

@@ -60,18 +60,19 @@
 
     <details id="section-visibility-manager" class="section-visibility-manager">
       <summary>
-        <span>Choose visible sections</span>
-        <small>Hide or show each dashboard section</small>
+        <span>Arrange and choose sections</span>
+        <small>Drag, hide, or show each dashboard section</small>
       </summary>
       <div class="section-visibility-body">
         <div class="section-visibility-heading">
-          <p>These choices are saved in this browser. Sections without data for the selected bowler are disabled automatically.</p>
+          <p>Drag a section by the ↕ handle to change its order. The arrow buttons provide the same control on phones and keyboards. Order and visibility choices are saved in this browser.</p>
           <div>
             <button id="show-all-sections" type="button">Show all</button>
             <button id="hide-all-sections" type="button">Hide all</button>
           </div>
         </div>
         <div id="section-visibility-options" class="section-visibility-options"></div>
+        <p id="section-order-status" class="sr-only" role="status" aria-live="polite"></p>
       </div>
     </details>
 
@@ -407,7 +408,7 @@
     <details id="section-alabama" class="panel dashboard-section">
       <summary class="panel-head alabama-heading section-summary">
         <div>
-          <p class="label">Representing Alabama</p>
+          <p id="state-leaderboard-eyebrow" class="label">Selected state</p>
           <h2 id="alabama-title">Alabama U18 Boys leaderboard</h2>
         </div>
         <div class="summary-actions alabama-summary-actions">
@@ -441,7 +442,7 @@
                 <th>Games</th>
                 <th>Total</th>
                 <th>Average</th>
-                <th>vs. Jack</th>
+                <th id="state-comparison-heading">vs. Jack</th>
               </tr>
             </thead>
             <tbody id="alabama-bowlers"></tbody>
@@ -497,7 +498,7 @@
     <div class="bowler-dialog-card">
       <div class="bowler-dialog-head">
         <div>
-          <p class="label">Alabama bowler profile</p>
+          <p id="state-bowler-dialog-kicker" class="label">State bowler profile</p>
           <h2 id="bowler-dialog-title">Bowler details</h2>
           <p id="bowler-dialog-hometown" class="muted"></p>
         </div>

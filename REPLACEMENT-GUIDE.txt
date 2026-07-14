@@ -1,4 +1,4 @@
-JACK WIX JUNIOR GOLD DASHBOARD — SELECTED-BOWLER CONTEXT V5
+JACK WIX JUNIOR GOLD DASHBOARD — PERSONALIZED LAYOUT V6
 
 This ZIP contains the complete repository except for Git history. It includes
 the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
@@ -39,8 +39,12 @@ WHAT THIS UPDATE ADDS
 - Show qualifying blocks, source reports, and 2025-versus-2026 comparisons only
   when those data are available.
 - Collapse every dashboard section on page load.
-- Hide or show individual sections from the display manager near the top; those
-  visibility choices persist in the visitor's browser.
+- Start with the Dashboard guide first and Jack's ball card hidden.
+- Hide, show, or drag-reorder individual sections from the display manager near
+  the top; order and visibility choices persist in the visitor's browser.
+- Provide up/down ordering buttons for phones, touch screens, and keyboards.
+- Build the state leaderboard from the Bowler Explorer's selected year and
+  state, including the active bowler comparison baseline.
 - Disable Jack-only or otherwise unavailable sections when another profile is
   active, while keeping their headings visible in the display manager.
 - Never infer missing individual game scores. Derived 2025 Day 3 totals are
@@ -52,7 +56,7 @@ EXPECTED CURRENT 2026 RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
 - Scores: 132, 190, 163, 221
 - Total: 706
 - Average: 176.50
-- Alabama bowlers currently published: 10
+- Alabama bowlers currently published in 2026: 10
 
 The 2026 participant count can grow as Bowl.com publishes more valid reports.
 The live updater replaces only the 2026 explorer data and preserves the fixed
