@@ -1,4 +1,4 @@
-JACK WIX JUNIOR GOLD DASHBOARD — BOWLER EXPLORER V4
+JACK WIX JUNIOR GOLD DASHBOARD — SELECTED-BOWLER CONTEXT V5
 
 This ZIP contains the complete repository except for Git history. It includes
 the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
@@ -6,7 +6,7 @@ archive builder, and the parser regression tests.
 
 PREFERRED INSTALLATION
 
-Review and merge GitHub pull request #5. GitHub Pages and the results updater
+Review and merge the selected-bowler dashboard pull request. GitHub Pages and the results updater
 will use the new files after the merge.
 
 FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
@@ -22,20 +22,27 @@ FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
    scripts/build_2025_archive.py, scripts/update_results.py, app.js,
    index.html, styles.css, and .github/workflows/update-results.yml.
 8. Commit with this summary:
-   Add all-bowler results explorer
+   Personalize dashboard for selected bowlers
 9. Click Push origin.
 10. On GitHub, open Actions > Update Junior Gold dashboard > Run workflow.
 11. Wait for a green check, then open the Pages site and hard-refresh with
     Command + Shift + R.
 
-WHAT THE EXPLORER ADDS
+WHAT THIS UPDATE ADDS
 
 - Search any published U18 Boys bowler by name or hometown.
 - Select a state to immediately list every published bowler from that state.
 - Switch between all 1,341 final 2025 profiles and the live 2026 field.
 - Open shareable profiles using the year and USBC ID in the URL.
+- Update the page title, hero, statistics, scores, charts, cut copy, comparison,
+  tournament path, guide, and share text for the selected bowler.
 - Show qualifying blocks, source reports, and 2025-versus-2026 comparisons only
   when those data are available.
+- Collapse every dashboard section on page load.
+- Hide or show individual sections from the display manager near the top; those
+  visibility choices persist in the visitor's browser.
+- Disable Jack-only or otherwise unavailable sections when another profile is
+  active, while keeping their headings visible in the display manager.
 - Never infer missing individual game scores. Derived 2025 Day 3 totals are
   explicitly labeled and use adjacent official cumulative totals only.
 

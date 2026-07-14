@@ -17,6 +17,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Pulls the official 2026 Junior Gold U18 Boys PDFs from Bowl.com.
 - Searches for `Jack Wix`.
 - Builds `data/bowlers.json` so any published U18 Boys bowler can be searched by name or hometown, or browsed with every bowler from a selected state.
+- Promotes the selected explorer profile into the active dashboard context so headings, statistics, scorecards, charts, cut estimates, source links, comparison copy, and sharing use that bowler's name and results.
 - Keeps all 1,341 final 2025 U18 Boys profiles in a fixed archive while refreshing the published 2026 field automatically.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
@@ -26,6 +27,12 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Stores visitor-specific section choices, last-visit comparisons, and favorite Alabama bowlers only in that visitor's browser.
 - `data/dashboard.json` contains a valid starting snapshot and can be edited manually if a PDF layout changes.
 - A selected bowler has a shareable `?year=YYYY&bowler=USBC-ID` profile URL. Profile sections are shown only when their underlying data exists.
+
+## Selected bowler and display controls
+
+Selecting a 2025 or 2026 profile updates the full dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, and archived comparison. Jack-only sections—personal schedule, equipment, last-visit summary, and the Alabama dashboard leaderboard—are disabled automatically when another bowler is active.
+
+Every dashboard section is collapsed on each page load. The controls near the top can expand or collapse all currently available sections, and **Choose visible sections** lets each visitor hide or show individual sections. Visibility choices are saved in that browser; sections without data for the active bowler remain disabled and explain why.
 
 ## Bowler Explorer
 
@@ -126,7 +133,8 @@ The header, statistics, schedule, Alabama leaderboard, and equipment cards now r
 
 ## Family dashboard features
 
-- Expand All and Collapse All controls, plus remembered state for every section.
+- All sections collapsed by default, with Expand All and Collapse All controls for the current view.
+- A persistent top-of-page visibility manager for hiding or showing individual sections.
 - A “Since your last visit” summary when official results change.
 - A block-level average-versus-estimated-cut chart and position history.
 - High game, low game, latest block, best block, and block-trend highlights.
