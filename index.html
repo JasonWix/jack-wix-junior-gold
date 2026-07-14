@@ -55,6 +55,81 @@
       </div>
     </div>
 
+    <details id="section-bowler-explorer" class="panel dashboard-section bowler-explorer-panel" open>
+      <summary class="panel-head section-summary">
+        <div>
+          <p class="label">All U18 Boys</p>
+          <h2>Bowler Explorer</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <div class="explorer-intro">
+          <div>
+            <h3>Find any 2025 or 2026 competitor</h3>
+            <p>Choose a year and search by bowler name or hometown. Profiles show only the standings, qualifying blocks, and year-over-year comparisons available in the official reports.</p>
+          </div>
+          <span id="explorer-data-status" class="pill explorer-data-status">Loading bowlers…</span>
+        </div>
+
+        <div class="explorer-controls">
+          <fieldset class="explorer-year-picker">
+            <legend>Results year</legend>
+            <button type="button" data-explorer-year="2026" aria-pressed="true">2026 <span id="explorer-count-2026">Live</span></button>
+            <button type="button" data-explorer-year="2025" aria-pressed="false">2025 <span id="explorer-count-2025">Final</span></button>
+          </fieldset>
+          <label class="explorer-search-label" for="explorer-search">
+            <span>Bowler name or hometown</span>
+            <input id="explorer-search" type="search" autocomplete="off" placeholder="Start typing a name…" disabled>
+          </label>
+        </div>
+
+        <p id="explorer-search-status" class="explorer-search-status" role="status" aria-live="polite">Loading the official bowler lists…</p>
+        <div id="explorer-results" class="explorer-results" role="listbox" aria-label="Matching U18 Boys bowlers"></div>
+
+        <article id="explorer-profile" class="explorer-profile" hidden>
+          <header class="explorer-profile-header">
+            <div>
+              <p id="explorer-profile-kicker" class="label">Selected bowler</p>
+              <h3 id="explorer-profile-name">Bowler profile</h3>
+              <p id="explorer-profile-meta" class="muted"></p>
+            </div>
+            <div class="explorer-profile-actions">
+              <button id="explorer-copy-link" type="button">Copy profile link</button>
+              <button id="explorer-clear" type="button">Choose another bowler</button>
+            </div>
+          </header>
+
+          <div id="explorer-profile-metrics" class="explorer-profile-metrics"></div>
+
+          <section id="explorer-year-section" class="explorer-profile-section" hidden>
+            <div class="explorer-section-heading">
+              <p class="label">Same bowler across years</p>
+              <h3>2025 vs. 2026</h3>
+            </div>
+            <div id="explorer-year-comparison" class="explorer-year-comparison"></div>
+          </section>
+
+          <section id="explorer-block-section" class="explorer-profile-section" hidden>
+            <div class="explorer-section-heading">
+              <p class="label">Posted qualifying data</p>
+              <h3>Scores by day</h3>
+            </div>
+            <div id="explorer-blocks" class="explorer-blocks"></div>
+          </section>
+
+          <section id="explorer-source-section" class="explorer-profile-section" hidden>
+            <div class="explorer-section-heading">
+              <p class="label">Source details</p>
+              <h3>Official reports</h3>
+            </div>
+            <p id="explorer-source-note" class="muted"></p>
+            <div id="explorer-source-links" class="explorer-source-links"></div>
+          </section>
+        </article>
+      </div>
+    </details>
+
     <details id="section-qualifying-overview" class="dashboard-section overview-section" open>
       <summary class="section-summary">
         <div>

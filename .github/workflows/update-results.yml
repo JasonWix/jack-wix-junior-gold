@@ -1,4 +1,4 @@
-# Workflow build: 2026-07-13-v3-validated-parser
+# Workflow build: 2026-07-13-v4-bowler-explorer
 name: Update Junior Gold dashboard
 
 on:
@@ -89,15 +89,20 @@ jobs:
           assert 1 <= len(data["history"]) <= 96
           assert data["history"][-1]["games_complete"] == current["games_complete"]
           assert data["history"][-1]["total"] == current["total"]
+          explorer = json.load(open("data/bowlers.json", encoding="utf-8"))
+          assert set(explorer["years"]) >= {"2025", "2026"}
+          assert explorer["years"]["2025"]["field_size"] == 1341
+          assert len(explorer["years"]["2025"]["bowlers"]) == 1341
+          assert any(bowler["name"] == "Jack Wix" for bowler in explorer["years"]["2026"]["bowlers"])
           print("Dashboard validation passed:", current)
           PY
 
-            if git diff --quiet -- data/dashboard.json; then
+            if git diff --quiet -- data/dashboard.json data/bowlers.json; then
               echo "No dashboard changes detected."
               exit 0
             fi
 
-            git add data/dashboard.json
+            git add data/dashboard.json data/bowlers.json
             git commit -m "Update Junior Gold results"
 
             if git push origin HEAD:main; then

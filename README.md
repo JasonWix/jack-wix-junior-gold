@@ -1,6 +1,6 @@
 # Jack Wix Junior Gold 2026 Dashboard
 
-A mobile-friendly GitHub Pages dashboard for Jack Wix's U18 Boys results.
+A mobile-friendly GitHub Pages dashboard for Jack Wix's U18 Boys results, with a searchable U18 Boys results explorer for every published bowler in 2025 and 2026.
 
 ## Publish
 
@@ -16,6 +16,8 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 - Pulls the official 2026 Junior Gold U18 Boys PDFs from Bowl.com.
 - Searches for `Jack Wix`.
+- Builds `data/bowlers.json` so any published U18 Boys bowler can be searched by name or hometown.
+- Keeps all 1,341 final 2025 U18 Boys profiles in a fixed archive while refreshing the published 2026 field automatically.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
 - Keeps Jack's verified 2025 U18 Boys qualifying results as a fixed archive and compares them with 2026 after each matching four-game checkpoint.
@@ -23,6 +25,26 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Includes an Alabama U18 Boys leaderboard with rank, hometown, games, total, average, and comparison to Jack.
 - Stores visitor-specific section choices, last-visit comparisons, and favorite Alabama bowlers only in that visitor's browser.
 - `data/dashboard.json` contains a valid starting snapshot and can be edited manually if a PDF layout changes.
+- A selected bowler has a shareable `?year=YYYY&bowler=USBC-ID` profile URL. Profile sections are shown only when their underlying data exists.
+
+## Bowler Explorer
+
+The Bowler Explorer is designed for every U18 Boys family, not only Jack's. Choose 2025 or 2026, search by bowler name or hometown, and select a result to see the available official data:
+
+- Current or final position, field size, total, average, games completed, and squad.
+- Posted qualifying blocks and individual games when they are machine-readable.
+- A same-stage 2025-versus-2026 comparison when the same bowler can be matched in both years.
+- Direct links to the relevant official Bowl.com results page and reports.
+
+Empty sections are hidden. The interface never invents missing game scores. The archived 2025 Day 3 block total may be derived from adjacent official cumulative totals when the individual games are not machine-readable; those cards are labeled **Verified total** and explain the calculation.
+
+To rebuild the complete 2025 archive locally:
+
+```bash
+python scripts/build_2025_archive.py
+```
+
+The live updater preserves that archive and replaces only the 2026 portion of `data/bowlers.json`.
 
 ## Important
 
