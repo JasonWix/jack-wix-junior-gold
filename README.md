@@ -18,6 +18,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Searches for `Jack Wix`.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
+- Keeps Jack's verified 2025 U18 Boys qualifying results as a fixed archive and compares them with 2026 after each matching four-game checkpoint.
 - The page automatically counts down to Jack's next Squad 1 qualifying block.
 - Includes an Alabama U18 Boys leaderboard with rank, hometown, games, total, average, and comparison to Jack.
 - Stores visitor-specific section choices, last-visit comparisons, and favorite Alabama bowlers only in that visitor's browser.
@@ -62,7 +63,18 @@ The dashboard includes Jack's five registered bowling balls from his Junior Gold
 - Hammer Black Pearl Urethane, registered on the card as "Black Urethane Pearl"
 - Columbia 300 White Dot
 
-Each card includes the registered serial number, a short role description, an official manufacturer image, and a product-source link. The White Dot color was not specified on the equipment card, so its image is clearly labeled as representative.
+Each card includes the registered serial number, a short role description, a product image, and a product-source link. Jack's White Dot is identified as the white / Diamond version.
+
+## 2025 vs. 2026 comparison
+
+The dashboard includes Jack's official 2025 U18 Boys qualifying results from the four archived Bowl.com reports:
+
+- Day 1: `191 · 133 · 158 · 115` — 597
+- Day 2: `172 · 191 · 142 · 168` — 673, 1,270 cumulative
+- Day 3: `183 · 115 · 155 · 178` — 631, 1,901 cumulative
+- Day 4: `200 · 183 · 147 · 200` — 730, 2,631 cumulative
+
+Jack finished 2025 qualifying with a 164.44 average, tied for 1009th in the 1,341-bowler U18 Boys field. The comparison uses same-stage scoring: Day 1 is compared after four games, Day 2 after eight, and so on. Unpublished 2026 days remain marked pending. The live updater preserves the archived 2025 data while adding each completed 2026 block and its standings snapshot.
 
 ## Latest dashboard clarification
 
@@ -80,11 +92,13 @@ The dashboard is ordered for family viewing:
 2. Next and most recent qualifying blocks
 3. Bowl.com freshness status
 4. Current statistics and clearly labeled cut estimates
-5. Scores by block
-6. Full qualifying schedule
-7. Alabama leaderboard
-8. Registered equipment
-9. Dashboard explanation
+5. 2025 vs. 2026 same-stage comparison
+6. 2026 progress and cut pace
+7. Scores by block
+8. Full qualifying schedule and tournament path
+9. Alabama leaderboard
+10. Registered equipment
+11. Dashboard explanation
 
 The header, statistics, schedule, Alabama leaderboard, and equipment cards now reflow for tablet and phone screens. On smaller phones, the Alabama table becomes readable stacked cards instead of requiring horizontal scrolling.
 

@@ -295,6 +295,7 @@ def build_history_snapshot(
         "observed_at": checked_at.isoformat(),
         "source_updated_at": report.updated_at.isoformat(),
         "report": ROUNDS[report.round_number - 1],
+        "source_url": f"{report.url}?v=new",
         "games_complete": current.get("games_complete"),
         "position": current.get("position"),
         "field_size": current.get("field_size"),

@@ -81,6 +81,7 @@ async function load(){
   renderSinceLastVisit(d);
 
   renderBlocks(d.blocks);
+  renderYearComparison(d.year_comparison || {}, d);
   renderProgress(d.history || [], d.current || {}, d.cut_projection || {});
   renderPerformanceHighlights(d.blocks || []);
   renderEquipment(d.equipment || {});
@@ -390,6 +391,216 @@ function renderBlocks(blocks){
       <div class="games">${(b.games||[]).map(g=>`<span class="game">${g}</span>`).join("") || '<span class="muted">Not bowled</span>'}</div>
       <p class="block-total">${b.total ? `${b.total} pins · ${(b.total/b.games.length).toFixed(2)} avg.` : "Pending"}</p>
     </article>`).join("");
+}
+
+function currentYearComparisonRows(data){
+  const historyByGames=new Map();
+  (Array.isArray(data.history) ? data.history : []).forEach(snapshot=>{
+    const games=Number(snapshot.games_complete);
+    if(games>0) historyByGames.set(games,snapshot);
+  });
+
+  let cumulativeTotal=0;
+  let previousBlocksComplete=true;
+  return (Array.isArray(data.blocks) ? data.blocks : []).map((block,index)=>{
+    const round=Number(block.round || index+1);
+    const games=(Array.isArray(block.games) ? block.games : []).map(Number).filter(Number.isFinite);
+    const calculatedTotal=games.reduce((sum,score)=>sum+score,0);
+    const blockTotal=block.total == null ? calculatedTotal : Number(block.total);
+    const complete=games.length===4 && Number.isFinite(blockTotal) && calculatedTotal===blockTotal && previousBlocksComplete;
+    if(complete) cumulativeTotal+=blockTotal;
+    else previousBlocksComplete=false;
+
+    const gamesComplete=round*4;
+    const snapshot=historyByGames.get(gamesComplete)
+      || (Number(data.current?.games_complete)===gamesComplete ? data.current : null);
+    const isLatestSource=Number(data.current?.games_complete)===gamesComplete;
+
+    return {
+      round,
+      games:complete ? games : [],
+      total:complete ? blockTotal : null,
+      cumulative_total:complete ? cumulativeTotal : null,
+      cumulative_average:complete ? cumulativeTotal/gamesComplete : null,
+      position:complete ? snapshot?.position ?? null : null,
+      field_size:complete ? snapshot?.field_size ?? data.field_size?.current_report ?? null : null,
+      source_url:complete ? snapshot?.source_url ?? (isLatestSource ? data.source_status?.source_url : null) : null,
+      complete
+    };
+  });
+}
+
+function signedNumber(value,digits=0){
+  const number=Number(value);
+  if(!Number.isFinite(number)) return "—";
+  return `${number>0?"+":""}${number.toFixed(digits)}`;
+}
+
+function comparisonSummaryCard(label,value,note,tone=""){
+  return `<article class="comparison-summary-card ${tone}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value)}</strong>
+    <small>${escapeHtml(note)}</small>
+  </article>`;
+}
+
+function comparisonYearColumn(year,row,fieldSize,isCurrent=false){
+  if(!row?.complete && !Array.isArray(row?.games)){
+    return `<section class="comparison-year-column pending">
+      <div class="comparison-year-label"><strong>${year}</strong><span>Pending</span></div>
+      <p class="comparison-pending">Waiting for the official four-game block.</p>
+    </section>`;
+  }
+
+  const complete=row?.complete !== false && Array.isArray(row?.games) && row.games.length===4;
+  if(!complete){
+    return `<section class="comparison-year-column pending">
+      <div class="comparison-year-label"><strong>${year}</strong><span>Pending</span></div>
+      <p class="comparison-pending">Waiting for the official four-game block.</p>
+    </section>`;
+  }
+
+  const position=row.position == null
+    ? "Position unavailable"
+    : `#${row.position}${row.tied?"T":""}${fieldSize ? ` of ${Number(fieldSize).toLocaleString()}${isCurrent?" published":""}` : ""}`;
+  const source=row.source_url
+    ? `<a href="${escapeHtml(row.source_url)}" target="_blank" rel="noopener">Official report ↗</a>`
+    : "";
+
+  return `<section class="comparison-year-column ${isCurrent?"current-year-column":"previous-year-column"}">
+    <div class="comparison-year-label"><strong>${year}</strong><span>${isCurrent?"Live":"Final"}</span></div>
+    <div class="comparison-games">${row.games.map(score=>`<span>${score}</span>`).join("")}</div>
+    <div class="comparison-year-total">
+      <strong>${Number(row.total).toLocaleString()}</strong>
+      <span>block pins</span>
+    </div>
+    <dl>
+      <div><dt>Cumulative</dt><dd>${Number(row.cumulative_total).toLocaleString()}</dd></div>
+      <div><dt>Average</dt><dd>${Number(row.cumulative_average).toFixed(2)}</dd></div>
+      <div><dt>Position</dt><dd>${escapeHtml(position)}</dd></div>
+    </dl>
+    ${source}
+  </section>`;
+}
+
+function renderYearComparison(comparison,data){
+  const summary=document.getElementById("year-comparison-summary");
+  const chart=document.getElementById("year-comparison-chart");
+  const days=document.getElementById("year-comparison-days");
+  const sources=document.getElementById("year-comparison-sources");
+  if(!summary || !chart || !days || !sources) return;
+
+  const previous=comparison.previous_year || {};
+  const previousYear=Number(previous.year || 2025);
+  const currentYear=Number(comparison.current_year || 2026);
+  const previousBlocks=Array.isArray(previous.blocks) ? previous.blocks.map(block=>({...block,complete:true})) : [];
+  const currentBlocks=currentYearComparisonRows(data);
+  const completedCurrent=currentBlocks.filter(block=>block.complete);
+  const latestCurrent=completedCurrent.at(-1);
+  const matchingPrevious=latestCurrent ? previousBlocks.find(block=>Number(block.round)===Number(latestCurrent.round)) : null;
+  const finalPrevious=previous.final_qualifying || previousBlocks.at(-1) || {};
+
+  setText(
+    "year-comparison-basis",
+    comparison.comparison_basis || "Each day compares the same four-game qualifying checkpoint."
+  );
+
+  if(latestCurrent && matchingPrevious){
+    const pinDifference=Number(latestCurrent.cumulative_total)-Number(matchingPrevious.cumulative_total);
+    const averageDifference=Number(latestCurrent.cumulative_average)-Number(matchingPrevious.cumulative_average);
+    summary.innerHTML=[
+      comparisonSummaryCard(
+        `Through Day ${latestCurrent.round}`,
+        `${signedNumber(pinDifference)} pins`,
+        `${currentYear}: ${Number(latestCurrent.cumulative_total).toLocaleString()} · ${previousYear}: ${Number(matchingPrevious.cumulative_total).toLocaleString()}`,
+        pinDifference>=0?"positive-card":"negative-card"
+      ),
+      comparisonSummaryCard(
+        "Average change",
+        signedNumber(averageDifference,2),
+        `${Number(latestCurrent.cumulative_average).toFixed(2)} vs. ${Number(matchingPrevious.cumulative_average).toFixed(2)}`,
+        averageDifference>=0?"positive-card":"negative-card"
+      ),
+      comparisonSummaryCard(
+        `${previousYear} qualifying finish`,
+        Number(finalPrevious.total).toLocaleString(),
+        `${Number(finalPrevious.average).toFixed(2)} avg. · #${finalPrevious.position}${finalPrevious.tied?"T":""} of ${Number(finalPrevious.field_size).toLocaleString()}`
+      ),
+      comparisonSummaryCard(
+        `${currentYear} live checkpoint`,
+        `Day ${latestCurrent.round} of 4`,
+        latestCurrent.position == null
+          ? `${latestCurrent.round*4} games complete`
+          : `#${latestCurrent.position} of ${Number(latestCurrent.field_size).toLocaleString()} published`
+      )
+    ].join("");
+  }else{
+    summary.innerHTML=comparisonSummaryCard(
+      `${currentYear} comparison pending`,
+      "Waiting for scores",
+      `The ${previousYear} baseline is ready and will compare automatically after the first complete block.`
+    );
+  }
+
+  const totals=[
+    ...previousBlocks.map(block=>Number(block.total)),
+    ...currentBlocks.filter(block=>block.complete).map(block=>Number(block.total))
+  ].filter(Number.isFinite);
+  const chartMax=Math.max(800,Math.ceil(Math.max(...totals,0)/100)*100);
+  const labels=[];
+  const rounds=[1,2,3,4];
+
+  chart.setAttribute("role","img");
+  rounds.forEach(round=>{
+    const oldBlock=previousBlocks.find(block=>Number(block.round)===round);
+    const newBlock=currentBlocks.find(block=>Number(block.round)===round && block.complete);
+    labels.push(`Day ${round}: ${previousYear} ${oldBlock?.total ?? "unavailable"}; ${currentYear} ${newBlock?.total ?? "pending"}`);
+  });
+  chart.setAttribute("aria-label",`Four-game block totals. ${labels.join(". ")}.`);
+  chart.innerHTML=`
+    <div class="comparison-chart-scale" aria-hidden="true"><span>${chartMax}</span><span>${Math.round(chartMax/2)}</span><span>0</span></div>
+    <div class="comparison-chart-groups" aria-hidden="true">
+      ${rounds.map(round=>{
+        const oldBlock=previousBlocks.find(block=>Number(block.round)===round);
+        const newBlock=currentBlocks.find(block=>Number(block.round)===round && block.complete);
+        const oldHeight=oldBlock ? Math.max(0,Math.min(100,(Number(oldBlock.total)/chartMax)*100)) : 0;
+        const newHeight=newBlock ? Math.max(0,Math.min(100,(Number(newBlock.total)/chartMax)*100)) : 0;
+        return `<div class="comparison-chart-group">
+          <div class="comparison-chart-bars">
+            <div class="comparison-chart-bar previous-year-bar" style="--comparison-height:${oldHeight}%"><span>${oldBlock?.total ?? "—"}</span></div>
+            ${newBlock
+              ? `<div class="comparison-chart-bar current-year-bar" style="--comparison-height:${newHeight}%"><span>${newBlock.total}</span></div>`
+              : '<div class="comparison-chart-bar pending-year-bar"><span>Pending</span></div>'}
+          </div>
+          <strong>Day ${round}</strong>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  days.innerHTML=rounds.map(round=>{
+    const oldBlock=previousBlocks.find(block=>Number(block.round)===round);
+    const newBlock=currentBlocks.find(block=>Number(block.round)===round);
+    const difference=newBlock?.complete && oldBlock
+      ? Number(newBlock.cumulative_total)-Number(oldBlock.cumulative_total)
+      : null;
+    return `<article class="comparison-day-card">
+      <header>
+        <div><span>Qualifying checkpoint</span><h3>Day ${round}</h3></div>
+        <strong class="comparison-day-difference ${difference==null?"pending":difference>=0?"positive":"negative"}">
+          ${difference==null?`${currentYear} pending`:`${signedNumber(difference)} cumulative pins`}
+        </strong>
+      </header>
+      <div class="comparison-year-columns">
+        ${comparisonYearColumn(previousYear,oldBlock,previous.field_size,false)}
+        ${comparisonYearColumn(currentYear,newBlock,newBlock?.field_size,true)}
+      </div>
+    </article>`;
+  }).join("");
+
+  const previousSource=comparison.source_page || "https://bowl.com/youth/youth-tournaments/junior-gold-championships/2025-results";
+  sources.innerHTML=`
+    <a href="${escapeHtml(previousSource)}" target="_blank" rel="noopener">Official ${previousYear} results ↗</a>
+    <a href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official ${currentYear} results ↗</a>`;
 }
 
 function renderAlabamaStatus(status){

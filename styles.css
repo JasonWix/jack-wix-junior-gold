@@ -259,6 +259,7 @@ h2{font-size:clamp(1.3rem,2.5vw,1.9rem);line-height:1.15}
 }
 .section-summary h2{margin:0}
 .section-body{min-width:0}
+.dashboard-section:not([open]) > .section-body{display:none}
 .section-toggle{
   display:inline-flex;
   align-items:center;
@@ -1290,4 +1291,226 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
   color:var(--muted)!important;
   font-size:.65rem!important;
   line-height:1.4!important;
+}
+
+/* 2025 vs. 2026 same-stage comparison */
+.year-comparison-panel .section-body{margin-top:20px}
+.comparison-intro,
+.comparison-chart-heading,
+.comparison-source-note{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:22px;
+}
+.comparison-intro h3,
+.comparison-chart-heading h3,
+.comparison-days-heading h3{margin:0;font-size:1.05rem}
+.comparison-intro p,
+.comparison-chart-heading p{
+  max-width:760px;
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:.8rem;
+  line-height:1.6;
+}
+.comparison-live-pill{flex:0 0 auto;background:var(--good);color:#123a1b}
+.year-comparison-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:17px;
+}
+.comparison-summary-card{
+  min-width:0;
+  padding:15px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  background:rgba(0,0,0,.15);
+}
+.comparison-summary-card.positive-card{border-color:rgba(157,255,128,.42);background:rgba(67,185,41,.1)}
+.comparison-summary-card.negative-card{border-color:rgba(255,208,216,.38);background:rgba(200,16,46,.1)}
+.comparison-summary-card span{display:block;color:var(--muted);font-size:.68rem;line-height:1.35}
+.comparison-summary-card strong{display:block;margin-top:7px;font-size:1.25rem;line-height:1.15}
+.comparison-summary-card small{display:block;margin-top:7px;color:var(--muted);font-size:.67rem;line-height:1.45}
+.comparison-chart-heading{margin-top:25px}
+.legend-swatch.previous-year-series{background:var(--brand-sky)}
+.legend-swatch.current-year-series{background:var(--accent)}
+.year-comparison-chart{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:8px;
+  min-height:286px;
+  margin-top:17px;
+  padding:18px 12px 8px 0;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:rgba(0,0,0,.14);
+}
+.comparison-chart-scale{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  height:230px;
+  color:var(--muted);
+  font-size:.65rem;
+  text-align:right;
+}
+.comparison-chart-groups{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  min-width:0;
+  height:254px;
+  padding:0 8px;
+  border-bottom:1px solid rgba(255,255,255,.35);
+  border-left:1px solid rgba(255,255,255,.35);
+}
+.comparison-chart-groups::before{
+  content:"";
+  position:absolute;
+  top:115px;
+  right:0;
+  left:0;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.comparison-chart-group{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-rows:230px auto;
+  align-items:end;
+  justify-items:center;
+  min-width:0;
+}
+.comparison-chart-group>strong{padding-top:9px;font-size:.72rem;white-space:nowrap}
+.comparison-chart-bars{display:flex;align-items:flex-end;justify-content:center;gap:7px;width:100%;height:230px}
+.comparison-chart-bar{
+  position:relative;
+  width:min(32%,44px);
+  height:var(--comparison-height);
+  min-height:2px;
+  border-radius:5px 5px 0 0;
+}
+.comparison-chart-bar span{
+  position:absolute;
+  top:-24px;
+  left:50%;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:.64rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+.previous-year-bar{background:var(--brand-sky)}
+.current-year-bar{background:var(--accent)}
+.pending-year-bar{
+  height:34px;
+  border:2px dashed rgba(255,255,255,.28);
+  background:rgba(255,255,255,.04);
+}
+.pending-year-bar span{top:-22px;color:var(--muted);font-size:.58rem}
+.comparison-days-heading{margin-top:26px}
+.comparison-days-heading .label{margin-bottom:6px}
+.year-comparison-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:13px}
+.comparison-day-card{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:16px;
+  background:rgba(0,0,0,.14);
+}
+.comparison-day-card>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 15px;
+  border-bottom:1px solid rgba(255,255,255,.11);
+}
+.comparison-day-card>header span{display:block;color:var(--muted);font-size:.62rem;text-transform:uppercase;letter-spacing:.07em}
+.comparison-day-card>header h3{margin:4px 0 0;font-size:1rem}
+.comparison-day-difference{font-size:.72rem;line-height:1.35;text-align:right}
+.comparison-day-difference.positive{color:var(--good)}
+.comparison-day-difference.negative{color:var(--danger)}
+.comparison-day-difference.pending{color:var(--muted)}
+.comparison-year-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.comparison-year-column{min-width:0;padding:15px}
+.comparison-year-column+.comparison-year-column{border-left:1px solid rgba(255,255,255,.1)}
+.comparison-year-column.current-year-column{background:rgba(248,195,34,.05)}
+.comparison-year-label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.comparison-year-label strong{font-size:1rem}
+.comparison-year-label span{
+  padding:4px 6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.1);
+  color:var(--muted);
+  font-size:.57rem;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.comparison-games{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:12px}
+.comparison-games span{
+  min-width:0;
+  padding:7px 2px;
+  border-radius:7px;
+  background:#fff;
+  color:var(--brand-blue);
+  font-size:.7rem;
+  font-weight:900;
+  text-align:center;
+}
+.comparison-year-total{display:flex;align-items:baseline;gap:7px;margin-top:13px}
+.comparison-year-total strong{font-size:1.3rem}
+.comparison-year-total span{color:var(--muted);font-size:.65rem}
+.comparison-year-column dl{margin:12px 0 0}
+.comparison-year-column dl>div{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.08)}
+.comparison-year-column dt{color:var(--muted);font-size:.62rem}
+.comparison-year-column dd{margin:0;font-size:.68rem;font-weight:800;text-align:right}
+.comparison-year-column>a{display:inline-block;margin-top:10px;color:#fff;font-size:.65rem;font-weight:900}
+.comparison-year-column.pending{display:flex;min-height:216px;flex-direction:column;background:rgba(255,255,255,.025)}
+.comparison-pending{margin:auto 0;color:var(--muted);font-size:.72rem;line-height:1.55;text-align:center}
+.comparison-source-note{
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid rgba(255,255,255,.11);
+}
+.comparison-source-note p{max-width:720px;margin:0;color:var(--muted);font-size:.74rem;line-height:1.55}
+.comparison-sources{display:flex;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.comparison-sources a{
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:9px;
+  background:rgba(255,255,255,.08);
+  font-size:.68rem;
+  font-weight:900;
+  text-decoration:none;
+}
+
+@media (max-width:1040px){
+  .year-comparison-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width:760px){
+  .comparison-intro,.comparison-chart-heading,.comparison-source-note{flex-direction:column}
+  .comparison-live-pill{align-self:flex-start}
+  .comparison-chart-heading .chart-legend{justify-content:flex-start}
+  .year-comparison-days{grid-template-columns:1fr}
+  .comparison-sources{justify-content:flex-start}
+}
+
+@media (max-width:520px){
+  .year-comparison-summary{grid-template-columns:1fr}
+  .year-comparison-chart{grid-template-columns:30px minmax(0,1fr);padding-right:6px}
+  .comparison-chart-groups{gap:4px;padding:0 3px}
+  .comparison-chart-bars{gap:3px}
+  .comparison-chart-bar{width:min(38%,28px)}
+  .comparison-chart-bar span{font-size:.57rem}
+  .pending-year-bar span{font-size:0}
+  .pending-year-bar span::after{content:"—";font-size:.65rem}
+  .comparison-day-card>header{align-items:flex-start}
+  .comparison-year-columns{grid-template-columns:1fr}
+  .comparison-year-column+.comparison-year-column{border-top:1px solid rgba(255,255,255,.1);border-left:0}
+  .comparison-year-column.pending{min-height:145px}
 }
