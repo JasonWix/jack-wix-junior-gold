@@ -1534,14 +1534,15 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
 .explorer-data-status{flex:0 0 auto;background:var(--accent);color:#14214f}
 .explorer-controls{
   display:grid;
-  grid-template-columns:minmax(250px,.7fr) minmax(320px,1.3fr);
+  grid-template-columns:minmax(245px,.75fr) minmax(190px,.65fr) minmax(280px,1.2fr);
   align-items:end;
   gap:14px;
   margin-top:20px;
 }
 .explorer-year-picker{min-width:0;margin:0;padding:0;border:0}
 .explorer-year-picker legend,
-.explorer-search-label>span{
+.explorer-search-label>span,
+.explorer-state-label>span{
   display:block;
   margin-bottom:8px;
   color:var(--muted);
@@ -1563,8 +1564,8 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
 }
 .explorer-year-picker button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:#14214f}
 .explorer-year-picker button span{display:block;margin-top:3px;font-size:.6rem;font-weight:700;opacity:.82}
-.explorer-search-label{display:block;min-width:0}
-.explorer-search-label input{
+.explorer-search-label,.explorer-state-label{display:block;min-width:0}
+.explorer-search-label input,.explorer-state-label select{
   width:100%;
   min-height:48px;
   padding:11px 14px;
@@ -1576,8 +1577,8 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
   font-size:1rem;
   font-weight:700;
 }
-.explorer-search-label input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(248,195,34,.2)}
-.explorer-search-label input:disabled{opacity:.6;cursor:wait}
+.explorer-search-label input:focus,.explorer-state-label select:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(248,195,34,.2)}
+.explorer-search-label input:disabled,.explorer-state-label select:disabled{opacity:.6;cursor:wait}
 .explorer-search-status{min-height:1.35em;margin:12px 0 0;color:var(--muted);font-size:.74rem;line-height:1.45}
 .explorer-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
 .explorer-results>button{
@@ -1687,10 +1688,16 @@ footer span+span::before{content:"•";margin-right:18px;opacity:.65}
   .explorer-blocks{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
+@media (max-width:850px){
+  .explorer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .explorer-search-label{grid-column:1/-1}
+}
+
 @media (max-width:680px){
   .explorer-intro,.explorer-profile-header{flex-direction:column}
   .explorer-data-status{align-self:flex-start}
   .explorer-controls{grid-template-columns:1fr}
+  .explorer-search-label{grid-column:auto}
   .explorer-results{grid-template-columns:1fr}
   .explorer-profile-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
   .explorer-profile-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}

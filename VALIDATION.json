@@ -1,6 +1,6 @@
 {
   "package": "Jack Wix Junior Gold dashboard bowler explorer v4",
-  "validated_at": "2026-07-13T23:10:00-05:00",
+  "validated_at": "2026-07-13T23:29:00-05:00",
   "official_report_as_of": "2026-07-13T18:56:00-05:00",
   "official_report_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
   "expected_result": {
@@ -19,7 +19,7 @@
     "The live Round 1 U18 Boys PDF produces 689 validated 2026 standings profiles",
     "Rounds 2 through 4 are correctly classified as unpublished placeholders",
     "Jack's games, block total, grand total, average, rank, and field size match the official report",
-    "Bowler search, profile selection, direct profile URLs, conditional sections, and collapse behavior pass browser testing",
+    "Bowler search, complete state lists, profile selection, direct profile URLs, conditional sections, and collapse behavior pass browser testing",
     "A 390-pixel phone viewport has no horizontal overflow and uses single-column profile cards",
     "Dashboard and explorer JSON parse",
     "JavaScript passes node --check",

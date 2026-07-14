@@ -3,6 +3,11 @@ let bowlerExplorerData = null;
 let explorerSelectedProfile = null;
 let explorerSelectedYear = "2026";
 
+const STATE_NAMES = {
+  AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
+  AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon",FC:"Foreign country"
+};
+
 const SECTION_STATE_KEY = "jack-wix-dashboard:section-state";
 const LAST_VISIT_KEY = "jack-wix-dashboard:last-visit";
 const FAVORITES_KEY = "jack-wix-dashboard:favorite-alabama-bowlers";
@@ -185,6 +190,32 @@ function explorerReport(yearData,round){
   return reports.find(report=>Number(report.round)===Number(round)) || reports.at(-1) || null;
 }
 
+function explorerStateValue(bowler){
+  return String(bowler?.state || "").trim().toUpperCase() || "__NONE__";
+}
+
+function explorerStateLabel(value){
+  if(value==="__NONE__") return "State unavailable";
+  return STATE_NAMES[value] ? `${STATE_NAMES[value]} (${value})` : value;
+}
+
+function populateExplorerStates(yearData,preferredState=""){
+  const select=document.getElementById("explorer-state");
+  const counts=new Map();
+  (yearData?.bowlers || []).forEach(bowler=>{
+    const value=explorerStateValue(bowler);
+    counts.set(value,(counts.get(value) || 0)+1);
+  });
+  const entries=[...counts.entries()].sort((a,b)=>
+    explorerStateLabel(a[0]).localeCompare(explorerStateLabel(b[0]))
+  );
+  select.innerHTML='<option value="">All states</option>'+entries.map(([value,count])=>
+    `<option value="${escapeHtml(value)}">${escapeHtml(explorerStateLabel(value))} · ${count.toLocaleString()}</option>`
+  ).join("");
+  select.value=counts.has(preferredState) ? preferredState : "";
+  select.disabled=false;
+}
+
 function matchingExplorerProfile(profile,targetYearData){
   const bowlers=Array.isArray(targetYearData?.bowlers) ? targetYearData.bowlers : [];
   return bowlers.find(bowler=>bowler.id===profile.id)
@@ -211,11 +242,13 @@ function clearExplorerProfile({clearUrl=true}={}){
     search.value="";
     search.focus({preventScroll:true});
   }
-  document.getElementById("explorer-results").innerHTML="";
-  setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} U18 Boys field.`);
+  renderExplorerMatches();
   if(clearUrl){
     const url=new URL(location.href);
-    url.searchParams.delete("year");
+    const state=document.getElementById("explorer-state")?.value || "";
+    url.searchParams.set("year",explorerSelectedYear);
+    if(state) url.searchParams.set("state",state);
+    else url.searchParams.delete("state");
     url.searchParams.delete("bowler");
     history.replaceState({},"",url);
   }
@@ -226,23 +259,32 @@ function renderExplorerMatches(){
   const results=document.getElementById("explorer-results");
   const yearData=explorerYearData(explorerSelectedYear);
   const query=normalizeExplorerText(search.value);
+  const selectedState=document.getElementById("explorer-state")?.value || "";
   results.innerHTML="";
 
-  if(query.length<2){
+  const minimumQueryLength=selectedState ? 1 : 2;
+  if(!selectedState && query.length<minimumQueryLength){
     setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} U18 Boys field.`);
     return;
   }
 
   const matches=(yearData?.bowlers || []).filter(bowler=>{
+    if(selectedState && explorerStateValue(bowler)!==selectedState) return false;
+    if(query.length<minimumQueryLength) return true;
     const haystack=normalizeExplorerText(`${bowler.name} ${bowler.hometown}`);
     return query.split(" ").every(term=>haystack.includes(term));
-  });
-  const visible=matches.slice(0,20);
+  }).sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  const visible=selectedState ? matches : matches.slice(0,20);
+  const stateLabel=selectedState ? explorerStateLabel(selectedState) : "";
   setText(
     "explorer-search-status",
-    matches.length
-      ? `${matches.length.toLocaleString()} match${matches.length===1?"":"es"} in ${explorerSelectedYear}. Select a name to open the profile.`
-      : `No ${explorerSelectedYear} U18 Boys bowlers matched “${search.value.trim()}”.`
+    selectedState
+      ? matches.length
+        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} U18 Boys bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} U18 Boys bowlers from ${stateLabel} matched “${search.value.trim()}”.`
+      : matches.length
+        ? `${matches.length.toLocaleString()} match${matches.length===1?"":"es"} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} U18 Boys bowlers matched “${search.value.trim()}”.`
   );
 
   results.innerHTML=visible.map(bowler=>`<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
@@ -250,7 +292,7 @@ function renderExplorerMatches(){
     <span class="explorer-result-stats"><strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small></span>
   </button>`).join("");
 
-  if(matches.length>visible.length){
+  if(!selectedState && matches.length>visible.length){
     results.insertAdjacentHTML("beforeend",`<p class="explorer-result-limit">Showing the first ${visible.length}. Keep typing to narrow the list.</p>`);
   }
   results.querySelectorAll("button[data-explorer-id]").forEach(button=>{
@@ -407,7 +449,10 @@ function selectExplorerProfile(year,id,{updateUrl=true,scroll=true}={}){
 
   if(updateUrl){
     const url=new URL(location.href);
+    const state=document.getElementById("explorer-state")?.value || "";
     url.searchParams.set("year",String(year));
+    if(state) url.searchParams.set("state",state);
+    else url.searchParams.delete("state");
     url.searchParams.set("bowler",profile.id);
     history.replaceState({},"",url);
   }
@@ -419,7 +464,10 @@ async function copyExplorerProfileLink(){
   const status=document.getElementById("explorer-search-status");
   if(!explorerSelectedProfile) return;
   const url=new URL(location.href);
+  const state=document.getElementById("explorer-state")?.value || "";
   url.searchParams.set("year",explorerSelectedYear);
+  if(state) url.searchParams.set("state",state);
+  else url.searchParams.delete("state");
   url.searchParams.set("bowler",explorerSelectedProfile.id);
   try{
     await copyText(url.toString());
@@ -432,6 +480,7 @@ async function copyExplorerProfileLink(){
 
 function bindBowlerExplorer(){
   const search=document.getElementById("explorer-search");
+  const state=document.getElementById("explorer-state");
   if(search.dataset.bound==="true") return;
   search.dataset.bound="true";
   search.addEventListener("input",renderExplorerMatches);
@@ -443,11 +492,27 @@ function bindBowlerExplorer(){
     button.addEventListener("click",()=>{
       const targetYear=button.dataset.explorerYear;
       const targetYearData=explorerYearData(targetYear);
+      const preferredState=state.value;
       const match=explorerSelectedProfile ? matchingExplorerProfile(explorerSelectedProfile,targetYearData) : null;
       setExplorerYear(targetYear);
+      populateExplorerStates(targetYearData,preferredState);
       if(match) selectExplorerProfile(targetYear,match.id);
       else clearExplorerProfile();
     });
+  });
+  state.addEventListener("change",()=>{
+    if(explorerSelectedProfile){
+      explorerSelectedProfile=null;
+      document.getElementById("explorer-profile").hidden=true;
+      search.value="";
+    }
+    const url=new URL(location.href);
+    url.searchParams.set("year",explorerSelectedYear);
+    if(state.value) url.searchParams.set("state",state.value);
+    else url.searchParams.delete("state");
+    url.searchParams.delete("bowler");
+    history.replaceState({},"",url);
+    renderExplorerMatches();
   });
   document.getElementById("explorer-clear").addEventListener("click",()=>clearExplorerProfile());
   document.getElementById("explorer-copy-link").addEventListener("click",copyExplorerProfileLink);
@@ -469,10 +534,12 @@ async function loadBowlerExplorer(){
 
   const params=new URLSearchParams(location.search);
   const requestedYear=params.get("year")==="2025" ? "2025" : "2026";
+  const requestedState=String(params.get("state") || "").toUpperCase();
   const requestedBowler=params.get("bowler");
   setExplorerYear(requestedYear);
+  populateExplorerStates(explorerYearData(requestedYear),requestedState);
   if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false})) return;
-  setText("explorer-search-status",`Type at least two characters to search the ${requestedYear} U18 Boys field.`);
+  renderExplorerMatches();
 }
 
 function currentVisitSnapshot(data){

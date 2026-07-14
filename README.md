@@ -16,7 +16,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 - Pulls the official 2026 Junior Gold U18 Boys PDFs from Bowl.com.
 - Searches for `Jack Wix`.
-- Builds `data/bowlers.json` so any published U18 Boys bowler can be searched by name or hometown.
+- Builds `data/bowlers.json` so any published U18 Boys bowler can be searched by name or hometown, or browsed with every bowler from a selected state.
 - Keeps all 1,341 final 2025 U18 Boys profiles in a fixed archive while refreshing the published 2026 field automatically.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
@@ -29,7 +29,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 ## Bowler Explorer
 
-The Bowler Explorer is designed for every U18 Boys family, not only Jack's. Choose 2025 or 2026, search by bowler name or hometown, and select a result to see the available official data:
+The Bowler Explorer is designed for every U18 Boys family, not only Jack's. Choose 2025 or 2026, select a state to list every published bowler from that state, optionally narrow the list by name or hometown, and select a result to see the available official data:
 
 - Current or final position, field size, total, average, games completed, and squad.
 - Posted qualifying blocks and individual games when they are machine-readable.

@@ -31,6 +31,7 @@ FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
 WHAT THE EXPLORER ADDS
 
 - Search any published U18 Boys bowler by name or hometown.
+- Select a state to immediately list every published bowler from that state.
 - Switch between all 1,341 final 2025 profiles and the live 2026 field.
 - Open shareable profiles using the year and USBC ID in the URL.
 - Show qualifying blocks, source reports, and 2025-versus-2026 comparisons only
