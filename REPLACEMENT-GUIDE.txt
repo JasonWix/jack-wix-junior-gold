@@ -1,12 +1,12 @@
-JACK WIX JUNIOR GOLD DASHBOARD — BOWLER EXPLORER V4
+JUNIOR GOLD DASHBOARD — ALL-DIVISION SEARCH UPDATE
 
 This ZIP contains the complete repository except for Git history. It includes
-the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
-archive builder, and the parser regression tests.
+the hidden .github workflows, the searchable 2026 U12/U14/U16/U18 boys and
+girls data, the 2025 U18 Boys archive, and parser regression tests.
 
 PREFERRED INSTALLATION
 
-Review and merge GitHub pull request #5. GitHub Pages and the results updater
+Review and merge the selected-bowler dashboard pull request. GitHub Pages and the results updater
 will use the new files after the merge.
 
 FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
@@ -18,35 +18,62 @@ FULL REPLACEMENT STEPS (GITHUB DESKTOP BACKUP METHOD)
 5. DO NOT delete or replace the existing .git folder.
 6. Copy every file and folder from the unzipped replacement into the local
    repository folder. Choose Replace or Merge when macOS asks.
-7. Confirm the replacement includes data/bowlers.json,
-   scripts/build_2025_archive.py, scripts/update_results.py, app.js,
-   index.html, styles.css, and .github/workflows/update-results.yml.
+7. Confirm the replacement includes data/bowlers.json, data/registration.json,
+   scripts/build_2025_archive.py, scripts/build_2026_registration.py,
+   scripts/update_results.py, app.js,
+   index.html, styles.css, VERSION, .github/workflows/update-results.yml, and
+   .github/workflows/bump-version.yml.
 8. Commit with this summary:
-   Add all-bowler results explorer
+   Add all-division Junior Gold bowler search
 9. Click Push origin.
 10. On GitHub, open Actions > Update Junior Gold dashboard > Run workflow.
 11. Wait for a green check, then open the Pages site and hard-refresh with
     Command + Shift + R.
 
-WHAT THE EXPLORER ADDS
+WHAT THIS UPDATE ADDS
 
-- Search any published U18 Boys bowler by name or hometown.
+- Search any registered 2026 U12, U14, U16, or U18 boys or girls bowler by
+  name or hometown.
+- Merge qualifying scores and standings into registered profiles as Bowl.com
+  publishes each division report.
 - Select a state to immediately list every published bowler from that state.
-- Switch between all 1,341 final 2025 profiles and the live 2026 field.
-- Open shareable profiles using the year and USBC ID in the URL.
+- Switch between all eight 2026 divisions and the 1,341-profile final 2025
+  U18 Boys archive.
+- Open shareable profiles using the year, division, state, and bowler ID in the URL.
+- Update the page title, hero, statistics, scores, charts, cut copy, comparison,
+  tournament path, guide, and share text for the selected bowler.
 - Show qualifying blocks, source reports, and 2025-versus-2026 comparisons only
   when those data are available.
+- Collapse every dashboard section on page load.
+- Start with the Dashboard guide first and Jack's ball card hidden.
+- Hide, show, or drag-reorder individual sections from the display manager near
+  the top; order and visibility choices persist in the visitor's browser.
+- Provide up/down ordering buttons for phones, touch screens, and keyboards.
+- Build the state participant list from the Bowler Explorer's selected year,
+  division, and state, including pending rows without posted scores.
+- Disable Jack-only or otherwise unavailable sections when another profile is
+  active, while keeping their headings visible in the display manager.
 - Never infer missing individual game scores. Derived 2025 Day 3 totals are
   explicitly labeled and use adjacent official cumulative totals only.
+- Display the dashboard version at the bottom of every page and automatically
+  increase it after each pull request is merged. The included VERSION file is
+  v5; merging pull request #6 publishes v6.
+- Hide sections that have no source-backed data for the selected bowler,
+  including the next-block card, last-qualifier card, personal schedule, ball
+  card, comparison, cut, progress, scores, and state leaderboard. Unavailable
+  sections are also omitted from the display manager.
+- Pin Official results status directly below the Live Tournament Dashboard
+  header. It remains collapsible but cannot be hidden or displaced by a saved
+  drag-and-drop order when 2026 source status is available.
 
-EXPECTED CURRENT 2026 RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
+EXPECTED CURRENT U18 BOYS RESULT (OFFICIAL REPORT AS OF JULY 13, 11:33 PM CENTRAL)
 
-- Jack Wix: rank 364T of 689 currently published participants
+- Jack Wix: rank 477T of 915 currently published results
 - Scores: 132, 190, 163, 221
 - Total: 706
 - Average: 176.50
-- Alabama bowlers currently published: 10
+- Official registration index: 3,812 participants across eight divisions
 
-The 2026 participant count can grow as Bowl.com publishes more valid reports.
-The live updater replaces only the 2026 explorer data and preserves the fixed
-2025 archive.
+The registration and published-results counts are intentionally separate.
+Registration-only profiles are labeled results pending. The live updater merges
+new qualifying results while preserving the fixed 2025 U18 Boys archive.

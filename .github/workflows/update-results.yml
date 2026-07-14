@@ -94,6 +94,13 @@ jobs:
           assert explorer["years"]["2025"]["field_size"] == 1341
           assert len(explorer["years"]["2025"]["bowlers"]) == 1341
           assert any(bowler["name"] == "Jack Wix" for bowler in explorer["years"]["2026"]["bowlers"])
+          live = explorer["years"]["2026"]
+          assert set(live["divisions"]) == {"U12B", "U12G", "U14B", "U14G", "U16B", "U16G", "U18B", "U18G"}
+          assert sum(item["registration_count"] for item in live["divisions"].values()) == 3812
+          for code, division in live["divisions"].items():
+              assert division["division_code"] == code
+              assert division["profile_count"] == len(division["bowlers"])
+              assert division["profile_count"] >= division["registration_count"]
           print("Dashboard validation passed:", current)
           PY
 

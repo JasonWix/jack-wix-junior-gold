@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-14T09:57:06.733577-05:00",
+  "updated_at": "2026-07-14T10:01:27.604788-05:00",
   "current": {
     "position": 477,
     "total": 706,
@@ -118,7 +118,7 @@
       "cut_pace_average": 198.25
     },
     {
-      "observed_at": "2026-07-14T01:06:42.342735-05:00",
+      "observed_at": "2026-07-14T00:51:23.938588-05:00",
       "source_updated_at": "2026-07-13T23:33:00-05:00",
       "report": "Qualifying Round 1",
       "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
@@ -552,10 +552,10 @@
   "source_status": {
     "status": "delayed",
     "last_updated_at": "2026-07-13T23:33:00-05:00",
-    "last_checked_at": "2026-07-14T09:57:06.733577-05:00",
+    "last_checked_at": "2026-07-14T10:01:27.604788-05:00",
     "report": "Qualifying Round 1",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
-    "age_minutes": 624,
+    "age_minutes": 628,
     "valid_reports": [
       1
     ]

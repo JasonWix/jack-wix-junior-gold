@@ -2,13 +2,39 @@ let dashboardData = null;
 let bowlerExplorerData = null;
 let explorerSelectedProfile = null;
 let explorerSelectedYear = "2026";
+let explorerSelectedDivision = "U18B";
+let activeDashboardContext = null;
+let defaultVisitView = null;
 
 const STATE_NAMES = {
   AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
   AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon",FC:"Foreign country"
 };
 
-const SECTION_STATE_KEY = "jack-wix-dashboard:section-state";
+const EXPLORER_DIVISIONS = {
+  U12B:"U12 Boys",U12G:"U12 Girls",U14B:"U14 Boys",U14G:"U14 Girls",
+  U16B:"U16 Boys",U16G:"U16 Girls",U18B:"U18 Boys",U18G:"U18 Girls"
+};
+
+const SECTION_VISIBILITY_KEY = "jack-wix-dashboard:section-visibility:v2";
+const SECTION_ORDER_KEY = "jack-wix-dashboard:section-order:v1";
+const PINNED_SECTION_IDS = new Set(["section-results-status"]);
+const DEFAULT_SECTION_VISIBILITY = {"section-equipment":false};
+const DEFAULT_SECTION_ORDER = [
+  "section-dashboard-guide",
+  "section-bowler-explorer",
+  "section-qualifying-overview",
+  "section-since-last-visit",
+  "section-current-statistics",
+  "section-year-comparison",
+  "section-progress",
+  "section-cut-status",
+  "section-scores",
+  "section-schedule",
+  "section-tournament-path",
+  "section-alabama",
+  "section-equipment"
+];
 const LAST_VISIT_KEY = "jack-wix-dashboard:last-visit";
 const FAVORITES_KEY = "jack-wix-dashboard:favorite-alabama-bowlers";
 let favoriteBowlers = loadStoredArray(FAVORITES_KEY);
@@ -38,16 +64,8 @@ function loadStoredArray(key){
 }
 
 function setupCollapsibleSections(){
-  const saved=readStoredJson(SECTION_STATE_KEY,{});
-
   document.querySelectorAll("details.dashboard-section").forEach(section=>{
-    if(saved[section.id] === false) section.open=false;
-    if(saved[section.id] === true) section.open=true;
-
-    section.addEventListener("toggle",()=>{
-      saved[section.id]=section.open;
-      writeStoredJson(SECTION_STATE_KEY,saved);
-    });
+    section.open=false;
   });
 }
 
@@ -55,8 +73,244 @@ function setupSectionControls(){
   const sections=[...document.querySelectorAll("details.dashboard-section")];
   const expand=document.getElementById("expand-all");
   const collapse=document.getElementById("collapse-all");
-  expand?.addEventListener("click",()=>sections.forEach(section=>{section.open=true;}));
-  collapse?.addEventListener("click",()=>sections.forEach(section=>{section.open=false;}));
+  expand?.addEventListener("click",()=>sections.filter(section=>!section.hidden).forEach(section=>{section.open=true;}));
+  collapse?.addEventListener("click",()=>sections.filter(section=>!section.hidden).forEach(section=>{section.open=false;}));
+}
+
+function sectionDisplayName(section){
+  return section.querySelector(":scope > summary h2")?.textContent?.trim()
+    || section.querySelector(":scope > summary .label")?.textContent?.trim()
+    || section.id.replace(/^section-/,"").replaceAll("-"," ");
+}
+
+function sectionUserVisible(saved,sectionId){
+  if(PINNED_SECTION_IDS.has(sectionId)) return true;
+  if(Object.prototype.hasOwnProperty.call(saved,sectionId)) return saved[sectionId]!==false;
+  return DEFAULT_SECTION_VISIBILITY[sectionId]!==false;
+}
+
+function applyStoredSectionOrder(){
+  const main=document.querySelector("main.container");
+  const sections=[...document.querySelectorAll("details.dashboard-section")];
+  if(!main || !sections.length) return;
+  const pinned=sections.filter(section=>PINNED_SECTION_IDS.has(section.id));
+  const movable=sections.filter(section=>!PINNED_SECTION_IDS.has(section.id));
+  const byId=new Map(movable.map(section=>[section.id,section]));
+  const saved=readStoredJson(SECTION_ORDER_KEY,[]);
+  const requested=Array.isArray(saved) && saved.length ? saved : DEFAULT_SECTION_ORDER;
+  const ids=[...requested.filter(id=>byId.has(id)),...movable.map(section=>section.id).filter(id=>!requested.includes(id))];
+  pinned.slice().reverse().forEach(section=>main.prepend(section));
+  ids.forEach(id=>main.append(byId.get(id)));
+}
+
+function saveSectionOrder(){
+  writeStoredJson(
+    SECTION_ORDER_KEY,
+    [...document.querySelectorAll("details.dashboard-section")]
+      .filter(section=>!PINNED_SECTION_IDS.has(section.id))
+      .map(section=>section.id)
+  );
+}
+
+function refreshSectionOrderButtons(){
+  const rows=[...document.querySelectorAll("[data-section-visibility]")].filter(row=>!row.hidden);
+  rows.forEach((row,index)=>{
+    row.querySelector(".section-order-up").disabled=index===0;
+    row.querySelector(".section-order-down").disabled=index===rows.length-1;
+  });
+}
+
+function clearSectionDragState(){
+  document.querySelectorAll("[data-section-visibility]").forEach(row=>row.classList.remove("dragging","drop-before","drop-after"));
+}
+
+function moveDashboardSection(sourceId,targetId,after=false){
+  if(!sourceId || !targetId || sourceId===targetId) return;
+  const source=document.getElementById(sourceId);
+  const target=document.getElementById(targetId);
+  const sourceRow=document.querySelector(`[data-section-visibility="${sourceId}"]`);
+  const targetRow=document.querySelector(`[data-section-visibility="${targetId}"]`);
+  if(!source || !target || !sourceRow || !targetRow) return;
+  if(after){
+    target.after(source);
+    targetRow.after(sourceRow);
+  }else{
+    target.before(source);
+    targetRow.before(sourceRow);
+  }
+  saveSectionOrder();
+  refreshSectionOrderButtons();
+  const position=[...document.querySelectorAll("[data-section-visibility]")]
+    .filter(row=>!row.hidden)
+    .findIndex(row=>row.dataset.sectionVisibility===sourceId)+1;
+  setText("section-order-status",`${sectionDisplayName(source)} moved to position ${position}.`);
+}
+
+function moveDashboardSectionOneStep(sectionId,direction){
+  const rows=[...document.querySelectorAll("[data-section-visibility]")].filter(row=>!row.hidden);
+  const index=rows.findIndex(row=>row.dataset.sectionVisibility===sectionId);
+  const targetIndex=index+direction;
+  if(index<0 || targetIndex<0 || targetIndex>=rows.length) return;
+  moveDashboardSection(sectionId,rows[targetIndex].dataset.sectionVisibility,direction>0);
+}
+
+function bindSectionOrderControls(container){
+  container.querySelectorAll(".section-order-handle").forEach(handle=>{
+    handle.addEventListener("click",event=>event.preventDefault());
+    handle.addEventListener("pointerdown",()=>{handle.closest("[data-section-visibility]").dataset.dragReady="true";});
+    handle.addEventListener("pointerup",()=>{delete handle.closest("[data-section-visibility]").dataset.dragReady;});
+    handle.addEventListener("pointercancel",()=>{delete handle.closest("[data-section-visibility]").dataset.dragReady;});
+    handle.addEventListener("dragstart",event=>{
+      const row=handle.closest("[data-section-visibility]");
+      row.classList.add("dragging");
+      event.dataTransfer.effectAllowed="move";
+      event.dataTransfer.setData("text/plain",row.dataset.sectionVisibility);
+      event.stopPropagation();
+    });
+    handle.addEventListener("dragend",event=>{
+      delete handle.closest("[data-section-visibility]").dataset.dragReady;
+      clearSectionDragState();
+      event.stopPropagation();
+    });
+  });
+  container.querySelectorAll("[data-section-visibility]").forEach(row=>{
+    row.addEventListener("dragstart",event=>{
+      if(row.dataset.dragReady!=="true"){
+        event.preventDefault();
+        return;
+      }
+      row.classList.add("dragging");
+      event.dataTransfer.effectAllowed="move";
+      event.dataTransfer.setData("text/plain",row.dataset.sectionVisibility);
+    });
+    row.addEventListener("dragend",()=>{
+      delete row.dataset.dragReady;
+      clearSectionDragState();
+    });
+    row.addEventListener("dragover",event=>{
+      event.preventDefault();
+      clearSectionDragState();
+      const after=event.clientY>row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+      row.classList.add(after?"drop-after":"drop-before");
+      event.dataTransfer.dropEffect="move";
+    });
+    row.addEventListener("dragleave",()=>row.classList.remove("drop-before","drop-after"));
+    row.addEventListener("drop",event=>{
+      event.preventDefault();
+      const sourceId=event.dataTransfer.getData("text/plain");
+      const after=row.classList.contains("drop-after");
+      moveDashboardSection(sourceId,row.dataset.sectionVisibility,after);
+      clearSectionDragState();
+    });
+    row.querySelector(".section-order-up").addEventListener("click",event=>{
+      event.preventDefault();
+      moveDashboardSectionOneStep(row.dataset.sectionVisibility,-1);
+    });
+    row.querySelector(".section-order-down").addEventListener("click",event=>{
+      event.preventDefault();
+      moveDashboardSectionOneStep(row.dataset.sectionVisibility,1);
+    });
+  });
+  refreshSectionOrderButtons();
+}
+
+function applySectionVisibility(){
+  const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
+  document.querySelectorAll("details.dashboard-section").forEach(section=>{
+    const available=section.dataset.contextAvailable!=="false";
+    const userVisible=sectionUserVisible(saved,section.id);
+    section.hidden=!available || !userVisible;
+    const control=document.querySelector(`[data-section-visibility="${section.id}"]`);
+    if(!control) return;
+    control.hidden=!available;
+    const input=control.querySelector("input");
+    input.checked=userVisible;
+    input.disabled=!available;
+    control.classList.toggle("unavailable",!available);
+    control.querySelector(".section-visibility-label").textContent=sectionDisplayName(section);
+    control.querySelector(".section-visibility-status").textContent=available ? "Available" : "Unavailable for current selection";
+  });
+  refreshSectionOrderButtons();
+}
+
+function setSectionAvailability(sectionId,available){
+  const section=document.getElementById(sectionId);
+  if(!section) return;
+  section.dataset.contextAvailable=String(Boolean(available));
+}
+
+function blockHasPostedData(block){
+  return Boolean(block && (Number(block.total)>0 || (Array.isArray(block.games) && block.games.length>0)));
+}
+
+function setQualifyingOverviewAvailability({schedule=[],blocks=[],isDefaultJack=false}={}){
+  const personalSchedule=isDefaultJack
+    ? schedule.filter(event=>event?.start && event?.title && event?.location)
+    : [];
+  const hasNext=personalSchedule.some(event=>new Date(event.start).getTime()>Date.now());
+  const hasLast=personalSchedule.some((event,index)=>blockHasPostedData(blocks[index]));
+  const nextCard=document.getElementById("next-block-card");
+  const lastCard=document.getElementById("last-block-card");
+  const grid=nextCard?.closest(".feature-grid");
+  if(nextCard) nextCard.hidden=!hasNext;
+  if(lastCard) lastCard.hidden=!hasLast;
+  if(grid) grid.classList.toggle("single-card",Number(hasNext)+Number(hasLast)===1);
+  return {hasNext,hasLast,hasOverview:hasNext || hasLast,hasSchedule:personalSchedule.length>0};
+}
+
+function refreshSectionVisibilityLabels(){
+  document.querySelectorAll("details.dashboard-section").forEach(section=>{
+    const label=document.querySelector(`[data-section-visibility="${section.id}"] .section-visibility-label`);
+    if(label) label.textContent=sectionDisplayName(section);
+  });
+  applySectionVisibility();
+}
+
+function setupSectionVisibilityManager(){
+  applyStoredSectionOrder();
+  const sections=[...document.querySelectorAll("details.dashboard-section")]
+    .filter(section=>!PINNED_SECTION_IDS.has(section.id));
+  const container=document.getElementById("section-visibility-options");
+  if(!container) return;
+  sections.forEach(section=>{section.dataset.contextAvailable="true";});
+  container.innerHTML=sections.map(section=>`
+    <div class="section-visibility-option" data-section-visibility="${escapeHtml(section.id)}" draggable="true">
+      <button class="section-order-handle" type="button" draggable="true" aria-label="Drag ${escapeHtml(sectionDisplayName(section))} to reorder" title="Drag to reorder">↕</button>
+      <label class="section-visibility-choice">
+        <input type="checkbox" ${sectionUserVisible({},section.id)?"checked":""}>
+        <span class="section-visibility-label">${escapeHtml(sectionDisplayName(section))}</span>
+        <small class="section-visibility-status">Available</small>
+      </label>
+      <div class="section-order-buttons" aria-label="Move ${escapeHtml(sectionDisplayName(section))}">
+        <button class="section-order-up" type="button" aria-label="Move ${escapeHtml(sectionDisplayName(section))} up" title="Move up">↑</button>
+        <button class="section-order-down" type="button" aria-label="Move ${escapeHtml(sectionDisplayName(section))} down" title="Move down">↓</button>
+      </div>
+    </div>`).join("");
+
+  container.querySelectorAll("input").forEach(input=>{
+    input.addEventListener("change",()=>{
+      const control=input.closest("[data-section-visibility]");
+      const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
+      saved[control.dataset.sectionVisibility]=input.checked;
+      writeStoredJson(SECTION_VISIBILITY_KEY,saved);
+      applySectionVisibility();
+    });
+  });
+  bindSectionOrderControls(container);
+
+  document.getElementById("show-all-sections")?.addEventListener("click",()=>{
+    const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
+    sections.forEach(section=>{saved[section.id]=true;});
+    writeStoredJson(SECTION_VISIBILITY_KEY,saved);
+    applySectionVisibility();
+  });
+  document.getElementById("hide-all-sections")?.addEventListener("click",()=>{
+    const saved=readStoredJson(SECTION_VISIBILITY_KEY,{});
+    sections.forEach(section=>{saved[section.id]=false;});
+    writeStoredJson(SECTION_VISIBILITY_KEY,saved);
+    applySectionVisibility();
+  });
+  applySectionVisibility();
 }
 
 const fmt = new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago",timeZoneName:"short"});
@@ -87,14 +341,13 @@ async function load(){
   setText("updated", `Dashboard refreshed ${fmt.format(new Date(d.updated_at))}`);
   renderSourceStatus(d.source_status || {}, d.updated_at);
   renderSinceLastVisit(d);
+  captureDefaultVisitView();
 
   renderBlocks(d.blocks);
   renderYearComparison(d.year_comparison || {}, d);
   renderProgress(d.history || [], d.current || {}, d.cut_projection || {});
   renderPerformanceHighlights(d.blocks || []);
   renderEquipment(d.equipment || {});
-  renderAlabamaStatus(d.alabama_status || {});
-  renderAlabama(d.alabama_bowlers || [], d.current.total);
   renderLastQualifier(d.schedule, d.blocks);
   renderSchedule(d.schedule);
   renderNextActions(d.schedule);
@@ -103,7 +356,7 @@ async function load(){
   loadBowlerExplorer().catch(error=>{
     console.error(error);
     setText("explorer-data-status","Bowler list unavailable");
-    setText("explorer-search-status","The searchable bowler data could not be loaded. Jack's dashboard remains available below.");
+    setText("explorer-search-status","The searchable bowler data could not be loaded. The primary dashboard remains available below.");
   });
 }
 
@@ -172,6 +425,259 @@ function escapeHtml(value){
     .replaceAll("'","&#039;");
 }
 
+function possessiveName(name){
+  return /s$/i.test(name) ? `${name}'` : `${name}'s`;
+}
+
+function isJackWix(profile){
+  return normalizeExplorerText(profile?.name)==="jack wix";
+}
+
+function profileBlocksForDashboard(profile){
+  const source=Array.isArray(profile?.blocks) ? profile.blocks : [];
+  return [1,2,3,4].map(round=>{
+    const block=source.find(item=>Number(item.round)===round);
+    if(!block) return {round,games:[],total:null};
+    const games=(Array.isArray(block.games) ? block.games : []).map(Number).filter(score=>Number.isFinite(score) && score>0);
+    return {
+      ...block,
+      round,
+      games,
+      total:Number(block.total)>0 ? Number(block.total) : games.length ? games.reduce((sum,score)=>sum+score,0) : null
+    };
+  });
+}
+
+function selectedCutContext(profile,year,projection){
+  if((profile?.division_code || explorerSelectedDivision)!=="U18B") return null;
+  const games=Number(profile?.games_complete || 0);
+  const currentScore=Number(projection?.current_score);
+  const finalTarget=Number(projection?.projected_final_total);
+  if(String(year)!=="2026" || games!==Number(projection?.games_basis) || !Number.isFinite(currentScore) || !Number.isFinite(finalTarget)) return null;
+  const total=Number(profile.total);
+  const remaining=16-games;
+  const name=profile.name;
+  return {
+    current:{
+      ...profile,
+      field_size:profile.field_size,
+      pins_from_cut:total-currentScore,
+      needed_average:remaining>0 ? Math.max(0,(finalTarget-total)/remaining) : null
+    },
+    projection:{
+      ...projection,
+      explanation:`The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. These values compare ${name} with the current report at the provisional 1-in-7 advancing position and project that pace over 16 games.`,
+      gap_basis:`Temporary comparison to place ${projection.advancing_place} in the latest ${games}-game report containing ${name}`,
+      needed_average_basis:`Temporary 16-game pace projection of ${finalTarget} pins`
+    }
+  };
+}
+
+function profileHistoryForDashboard(profile,yearData,cutContext=null){
+  return (profile?.blocks || [])
+    .filter(block=>Number(block.cumulative_total)>0 && Number(block.cumulative_average)>0)
+    .map(block=>{
+      const gamesComplete=Number(block.round)*4;
+      const isLatest=gamesComplete===Number(profile.games_complete);
+      return {
+        games_complete:gamesComplete,
+        total:Number(block.cumulative_total),
+        average:Number(block.cumulative_average),
+        position:block.position,
+        field_size:yearData.field_size,
+        pins_from_cut:isLatest ? cutContext?.current?.pins_from_cut ?? null : null,
+        projected_cut_total:isLatest ? cutContext?.projection?.projected_final_total ?? null : null,
+        source_url:explorerReport(yearData,block.round)?.source_url || null
+      };
+    });
+}
+
+function profileComparisonYear(profile,yearData){
+  const blocks=(profile.blocks || []).map(block=>({
+    ...block,
+    source_url:explorerReport(yearData,block.derived && Number(block.round)===3 ? 4 : block.round)?.source_url || null
+  }));
+  return {
+    year:Number(yearData.year),
+    division:yearData.division || "U18 Boys",
+    field_size:yearData.field_size,
+    blocks,
+    final_qualifying:{
+      games_complete:profile.games_complete,
+      total:profile.total,
+      average:profile.average,
+      position:profile.rank,
+      tied:profile.tied,
+      field_size:yearData.field_size
+    }
+  };
+}
+
+function buildSelectedComparison(profile){
+  if((profile?.division_code || explorerSelectedDivision)!=="U18B") return null;
+  const archive=explorerYearData("2025","U18B");
+  const live=explorerYearData("2026","U18B");
+  if(!archive || !live) return null;
+  const profile2025=matchingExplorerProfile(profile,archive);
+  const profile2026=matchingExplorerProfile(profile,live);
+  if(!profile2025 || !profile2026) return null;
+  const cutContext=selectedCutContext(profile2026,"2026",dashboardData?.cut_projection || {});
+  return {
+    comparison:{
+      current_year:2026,
+      source_page:archive.source_page,
+      comparison_basis:`Each day compares ${profile.name}'s same four-game qualifying checkpoint. The 2025 results are final; 2026 remains live and fills in as Bowl.com publishes each round.`,
+      previous_year:profileComparisonYear(profile2025,archive)
+    },
+    currentData:{
+      current:{...profile2026,position:profile2026.rank,field_size:live.field_size},
+      blocks:profileBlocksForDashboard(profile2026),
+      history:profileHistoryForDashboard(profile2026,live,cutContext),
+      field_size:{current_report:live.field_size},
+      source_status:dashboardData?.source_status || {}
+    }
+  };
+}
+
+function applySelectedBowlerContext(year,yearData,profile){
+  if(!dashboardData || !yearData || !profile) return;
+  const selectedYear=String(year);
+  const division=yearData.division || EXPLORER_DIVISIONS[explorerSelectedDivision] || "U18 Boys";
+  const isDefaultJack=isJackWix(profile) && selectedYear==="2026" && yearData.division_code==="U18B";
+  const blocks=profileBlocksForDashboard(profile);
+  const hasScores=blocks.some(block=>Number(block.total)>0 || block.games.length);
+  const cutContext=selectedCutContext(profile,selectedYear,dashboardData.cut_projection || {});
+  const history=profileHistoryForDashboard(profile,yearData,cutContext);
+  const comparison=buildSelectedComparison(profile);
+  const scheduleAvailability=setQualifyingOverviewAvailability({
+    schedule:dashboardData.schedule || [],
+    blocks,
+    isDefaultJack
+  });
+  const hasEquipment=Boolean(isDefaultJack && dashboardData.equipment?.balls?.length);
+  const hasStandings=Number.isFinite(Number(profile.rank))
+    && Number.isFinite(Number(profile.total))
+    && Number.isFinite(Number(profile.average))
+    && Number(profile.games_complete)>0;
+  const hasSourceStatus=selectedYear==="2026" && Boolean(
+    yearData.source_updated_at || yearData.source_page || yearData.reports?.length
+  );
+  const hasTournamentPath=selectedYear==="2026"
+    && hasStandings
+    && Boolean(dashboardData.tournament_path?.length);
+  const current={
+    ...profile,
+    position:profile.rank,
+    field_size:yearData.field_size,
+    pins_from_cut:cutContext?.current?.pins_from_cut ?? null,
+    needed_average:cutContext?.current?.needed_average ?? null
+  };
+
+  activeDashboardContext={
+    name:profile.name,
+    year:selectedYear,
+    yearData,
+    profile,
+    current,
+    blocks,
+    isDefaultJack
+  };
+
+  document.body.classList.toggle("alternate-bowler-context",!isDefaultJack);
+  document.querySelector(".banner-shell").hidden=!isDefaultJack;
+  document.getElementById("jack-facebook-link").hidden=!isDefaultJack;
+  document.title=`${profile.name} | Junior Gold ${selectedYear}`;
+  document.querySelector('meta[name="description"]').content=`Official-results dashboard for ${profile.name} at the ${selectedYear} Junior Gold Championships.`;
+  setText("dashboard-context-eyebrow",isDefaultJack ? "Live Tournament Dashboard" : `Viewing ${selectedYear} ${division} Results`);
+  setText("dashboard-bowler-name",profile.name);
+  setText("dashboard-bowler-subtitle",`${selectedYear} ${division} · Squad ${profile.squad || "—"} · ${profile.hometown || "Hometown unavailable"}`);
+  setText("active-bowler-context",`Viewing ${profile.name} · ${selectedYear}`);
+  const officialLink=document.getElementById("hero-official-link");
+  officialLink.href=yearData.source_page || officialLink.href;
+  officialLink.firstChild.textContent=`Official ${selectedYear} results `;
+
+  setText("statistics-title",`${possessiveName(profile.name)} tournament statistics`);
+  setText("position-field-label",`Position / ${yearData.division_code || "U18B"} field`);
+  document.getElementById("statistics-metrics").setAttribute("aria-label",`${possessiveName(profile.name)} current tournament statistics`);
+  setText("position",hasStandings ? `#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}` : "Not yet posted");
+  setText("field-size-note",yearData.status==="final" ? `Final ${division} qualifying field` : `Published ${division} results field; registration and results counts can differ`);
+  setText("total",hasStandings ? Number(profile.total).toLocaleString() : "—");
+  setText("average",hasStandings ? Number(profile.average).toFixed(2) : "—");
+  setText("games-complete",hasStandings ? `${profile.games_complete}/16` : "0/16 posted");
+  document.querySelectorAll(".estimate-metric").forEach(card=>{card.hidden=!cutContext;});
+  if(cutContext) renderCutProjection(cutContext.current,cutContext.projection);
+
+  setText("scores-title",`${possessiveName(profile.name)} scores by block`);
+  const refreshedAt=yearData.source_updated_at || yearData.generated_at;
+  setText("updated",yearData.status==="final" ? `Final archived ${selectedYear} qualifying results` : `Official results updated ${refreshedAt ? fmt.format(new Date(refreshedAt)) : "recently"}`);
+  if(isDefaultJack){
+    renderSourceStatus(dashboardData.source_status || {},dashboardData.updated_at);
+  }else if(selectedYear==="2026"){
+    const latestReport=[...(yearData.reports || [])].sort((a,b)=>new Date(b.source_updated_at)-new Date(a.source_updated_at))[0];
+    const updatedAt=latestReport?.source_updated_at || yearData.source_updated_at;
+    const ageMinutes=updatedAt ? Math.max(0,Math.round((Date.now()-new Date(updatedAt).getTime())/60000)) : null;
+    renderSourceStatus({
+      status:ageMinutes==null?"unavailable":ageMinutes<=180?"current":"delayed",
+      last_updated_at:updatedAt,
+      last_checked_at:yearData.generated_at,
+      report:latestReport?`Qualifying Round ${latestReport.round}`:`${division} participant report`,
+      source_url:latestReport?.source_url || profile.registration_source_url || yearData.source_page,
+      age_minutes:ageMinutes
+    },yearData.generated_at);
+  }
+  renderBlocks(blocks);
+
+  setText("progress-description",cutContext
+    ? `${possessiveName(profile.name)} tournament average compared with the temporary projected cut pace. Both values use pins per game.`
+    : `${possessiveName(profile.name)} cumulative tournament average and position after each available qualifying block.`);
+  setText("progress-bowler-name",profile.name.split(" ")[0]);
+  document.getElementById("progress-cut-legend").hidden=!cutContext;
+  renderProgress(history,current,cutContext?.projection || {},profile.name);
+  renderPerformanceHighlights(blocks);
+
+  setText("year-comparison-title",`${profile.name}: 2025 vs. 2026`);
+  if(comparison) renderYearComparison(comparison.comparison,comparison.currentData);
+
+  setText("tournament-path-intro",`${profile.name} must advance at each cut to continue. The current stage is highlighted; future stages are not guaranteed.`);
+  renderTournamentPath(dashboardData.tournament_path || [],current);
+  setText("qualifying-overview-title",isDefaultJack ? "Qualifying overview" : `${possessiveName(profile.name)} qualifying overview`);
+  if(isDefaultJack) restoreDefaultVisitView();
+  else setText("visit-title",`${possessiveName(profile.name)} visit updates`);
+  setText("schedule-title",isDefaultJack ? "Squad 1 qualifying" : `${possessiveName(profile.name)} qualifying schedule`);
+  setText("equipment-title",`${possessiveName(profile.name)} registered ball card`);
+  setText("dashboard-guide-context",comparison
+    ? `The year-over-year section compares ${possessiveName(profile.name)} 2025 and 2026 results only at matching four-game checkpoints. Sections without source-backed data for this selection are hidden automatically. Personal display choices are stored only in this browser.`
+    : hasStandings
+      ? `This profile has official ${selectedYear} ${division} qualifying results. Sections requiring another year, a personal schedule, or equipment details are hidden when those data are unavailable. Personal display choices are stored only in this browser.`
+      : `${profile.name} appears in the official ${selectedYear} ${division} participant report, but no qualifying score row is posted yet. Score-dependent sections stay hidden until Bowl.com publishes matching results.`);
+
+  const availability={
+    "section-bowler-explorer":true,
+    "section-qualifying-overview":scheduleAvailability.hasOverview,
+    "section-since-last-visit":isDefaultJack && hasStandings,
+    "section-results-status":hasSourceStatus,
+    "section-current-statistics":hasStandings,
+    "section-year-comparison":Boolean(comparison),
+    "section-progress":history.length>0,
+    "section-cut-status":Boolean(cutContext),
+    "section-scores":hasScores,
+    "section-schedule":scheduleAvailability.hasSchedule,
+    "section-tournament-path":hasTournamentPath,
+    "section-alabama":Boolean(document.getElementById("explorer-state")?.value),
+    "section-equipment":hasEquipment,
+    "section-dashboard-guide":true
+  };
+  Object.entries(availability).forEach(([id,available])=>setSectionAvailability(id,available));
+  if(bowlerExplorerData) refreshStateLeaderboard(false);
+  refreshSectionVisibilityLabels();
+}
+
+function restoreDefaultDashboardContext(){
+  const live=explorerYearData("2026","U18B");
+  const jack=(live?.bowlers || []).find(bowler=>isJackWix(bowler));
+  if(jack) applySelectedBowlerContext("2026",live,jack);
+}
+
 function normalizeExplorerText(value){
   return String(value || "")
     .normalize("NFD")
@@ -181,8 +687,11 @@ function normalizeExplorerText(value){
     .trim();
 }
 
-function explorerYearData(year){
-  return bowlerExplorerData?.years?.[String(year)] || null;
+function explorerYearData(year,division=explorerSelectedDivision){
+  const yearData=bowlerExplorerData?.years?.[String(year)] || null;
+  if(!yearData) return null;
+  if(String(year)==="2026" && yearData.divisions) return yearData.divisions[division] || null;
+  return division==="U18B" ? yearData : null;
 }
 
 function explorerReport(yearData,round){
@@ -228,9 +737,21 @@ function matchingExplorerProfile(profile,targetYearData){
 
 function setExplorerYear(year){
   explorerSelectedYear=String(year);
+  const division=document.getElementById("explorer-division");
+  if(explorerSelectedYear==="2025") explorerSelectedDivision="U18B";
+  if(division){
+    division.value=explorerSelectedDivision;
+    division.disabled=explorerSelectedYear==="2025";
+  }
   document.querySelectorAll("[data-explorer-year]").forEach(button=>{
     button.setAttribute("aria-pressed",String(button.dataset.explorerYear===explorerSelectedYear));
   });
+}
+
+function setExplorerDivision(code){
+  explorerSelectedDivision=EXPLORER_DIVISIONS[code] ? code : "U18B";
+  const division=document.getElementById("explorer-division");
+  if(division) division.value=explorerSelectedDivision;
 }
 
 function clearExplorerProfile({clearUrl=true}={}){
@@ -243,10 +764,12 @@ function clearExplorerProfile({clearUrl=true}={}){
     search.focus({preventScroll:true});
   }
   renderExplorerMatches();
+  restoreDefaultDashboardContext();
   if(clearUrl){
     const url=new URL(location.href);
     const state=document.getElementById("explorer-state")?.value || "";
     url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state) url.searchParams.set("state",state);
     else url.searchParams.delete("state");
     url.searchParams.delete("bowler");
@@ -260,11 +783,12 @@ function renderExplorerMatches(){
   const yearData=explorerYearData(explorerSelectedYear);
   const query=normalizeExplorerText(search.value);
   const selectedState=document.getElementById("explorer-state")?.value || "";
+  const division=yearData?.division || EXPLORER_DIVISIONS[explorerSelectedDivision];
   results.innerHTML="";
 
   const minimumQueryLength=selectedState ? 1 : 2;
   if(!selectedState && query.length<minimumQueryLength){
-    setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} U18 Boys field.`);
+    setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} ${division} participants.`);
     return;
   }
 
@@ -273,24 +797,34 @@ function renderExplorerMatches(){
     if(query.length<minimumQueryLength) return true;
     const haystack=normalizeExplorerText(`${bowler.name} ${bowler.hometown}`);
     return query.split(" ").every(term=>haystack.includes(term));
-  }).sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  }).sort((a,b)=>{
+    const left=a.rank==null ? Number.MAX_SAFE_INTEGER : Number(a.rank);
+    const right=b.rank==null ? Number.MAX_SAFE_INTEGER : Number(b.rank);
+    return left-right || a.name.localeCompare(b.name);
+  });
   const visible=selectedState ? matches : matches.slice(0,20);
   const stateLabel=selectedState ? explorerStateLabel(selectedState) : "";
   setText(
     "explorer-search-status",
     selectedState
       ? matches.length
-        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} U18 Boys bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
-        : `No ${explorerSelectedYear} U18 Boys bowlers from ${stateLabel} matched “${search.value.trim()}”.`
+        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} ${division} bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} ${division} bowlers from ${stateLabel} matched “${search.value.trim()}”.`
       : matches.length
         ? `${matches.length.toLocaleString()} match${matches.length===1?"":"es"} in ${explorerSelectedYear}. Select a name to open the profile.`
-        : `No ${explorerSelectedYear} U18 Boys bowlers matched “${search.value.trim()}”.`
+        : `No ${explorerSelectedYear} ${division} bowlers matched “${search.value.trim()}”.`
   );
 
-  results.innerHTML=visible.map(bowler=>`<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
+  results.innerHTML=visible.map(bowler=>{
+    const hasResults=bowler.rank!=null && bowler.total!=null && bowler.average!=null;
+    const summary=hasResults
+      ? `<strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small>`
+      : `<strong>Registered</strong><small>Squad ${bowler.squad || "—"} · Results pending</small>`;
+    return `<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
     <span><strong>${escapeHtml(bowler.name)}</strong><small>${escapeHtml(bowler.hometown || "Hometown unavailable")}</small></span>
-    <span class="explorer-result-stats"><strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small></span>
-  </button>`).join("");
+    <span class="explorer-result-stats">${summary}</span>
+  </button>`;
+  }).join("");
 
   if(!selectedState && matches.length>visible.length){
     results.insertAdjacentHTML("beforeend",`<p class="explorer-result-limit">Showing the first ${visible.length}. Keep typing to narrow the list.</p>`);
@@ -327,8 +861,13 @@ function explorerCheckpoint(profile,gamesComplete){
 function renderExplorerYearComparison(year,yearData,profile){
   const section=document.getElementById("explorer-year-section");
   const container=document.getElementById("explorer-year-comparison");
+  if(yearData.division_code!=="U18B" || !Number(profile.games_complete)){
+    section.hidden=true;
+    container.innerHTML="";
+    return;
+  }
   const otherYear=String(year)==="2026" ? "2025" : "2026";
-  const otherYearData=explorerYearData(otherYear);
+  const otherYearData=explorerYearData(otherYear,"U18B");
   const otherProfile=otherYearData ? matchingExplorerProfile(profile,otherYearData) : null;
   if(!otherProfile){
     section.hidden=true;
@@ -399,6 +938,7 @@ function renderExplorerSources(yearData,profile){
   const relevant=reports.filter(report=>visibleRounds.has(Number(report.round)) || Number(report.round)===Number(profile.latest_round));
   const sourceLinks=[];
   if(yearData.source_page) sourceLinks.push(`<a href="${escapeHtml(yearData.source_page)}" target="_blank" rel="noopener">${yearData.year} results page ↗</a>`);
+  if(profile.registration_source_url) sourceLinks.push(`<a href="${escapeHtml(profile.registration_source_url)}" target="_blank" rel="noopener">${yearData.division} participant report ↗</a>`);
   relevant.forEach(report=>sourceLinks.push(`<a href="${escapeHtml(report.source_url)}" target="_blank" rel="noopener">Day ${report.round} report ↗</a>`));
   if(!sourceLinks.length){
     section.hidden=true;
@@ -409,23 +949,26 @@ function renderExplorerSources(yearData,profile){
   section.hidden=false;
   setText(
     "explorer-source-note",
-    yearData.archive_note || `${yearData.year} results reflect the latest valid official U18 Boys reports available to the dashboard.`
+    yearData.archive_note || `${yearData.year} ${yearData.division} profiles combine the official participant report with the latest valid qualifying results.`
   );
   links.innerHTML=[...new Set(sourceLinks)].join("");
 }
 
 function renderExplorerProfile(year,yearData,profile){
   const profileElement=document.getElementById("explorer-profile");
-  setText("explorer-profile-kicker",`${year} ${yearData.status==="final"?"final":"live"} U18 Boys results`);
+  const hasResults=profile.rank!=null && profile.total!=null && profile.average!=null && Number(profile.games_complete)>0;
+  setText("explorer-profile-kicker",`${year} ${yearData.status==="final"?"final":"live"} ${yearData.division}`);
   setText("explorer-profile-name",profile.name);
-  setText("explorer-profile-meta",`${profile.hometown || "Hometown unavailable"} · Squad ${profile.squad} · Latest posted Day ${profile.latest_round}`);
+  setText("explorer-profile-meta",`${profile.hometown || "Hometown unavailable"} · Squad ${profile.squad || "—"} · ${hasResults?`Latest posted Day ${profile.latest_round}`:"Registered participant; qualifying results not yet posted"}`);
 
   const metrics=[
-    explorerMetric("Position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`,yearData.status==="live"?"Published field; may change":"Final qualifying field"),
-    explorerMetric("Total pins",Number(profile.total).toLocaleString()),
-    explorerMetric("Average",Number(profile.average).toFixed(2)),
-    explorerMetric("Games complete",`${profile.games_complete} of 16`),
-    explorerMetric("Squad",profile.squad)
+    hasResults ? explorerMetric("Position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`,yearData.status==="live"?"Published results field; may change":"Final qualifying field") : "",
+    hasResults ? explorerMetric("Total pins",Number(profile.total).toLocaleString()) : "",
+    hasResults ? explorerMetric("Average",Number(profile.average).toFixed(2)) : "",
+    hasResults ? explorerMetric("Games complete",`${profile.games_complete} of 16`) : "",
+    explorerMetric("Squad",profile.squad),
+    explorerMetric("Qualifying event",profile.qualification_event),
+    explorerMetric("Waiver",profile.waiver_status)
   ].filter(Boolean);
   document.getElementById("explorer-profile-metrics").innerHTML=metrics.join("");
 
@@ -435,22 +978,29 @@ function renderExplorerProfile(year,yearData,profile){
   profileElement.hidden=false;
 }
 
-function selectExplorerProfile(year,id,{updateUrl=true,scroll=true}={}){
+function selectExplorerProfile(year,id,{updateUrl=true,scroll=true,syncState=true}={}){
   const yearData=explorerYearData(year);
-  const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id);
+  const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id || bowler.registration_id===id);
   if(!profile) return false;
 
   setExplorerYear(year);
   explorerSelectedProfile=profile;
+  const stateSelect=document.getElementById("explorer-state");
+  const profileState=explorerStateValue(profile);
+  if(syncState && stateSelect && profileState!=="__NONE__" && [...stateSelect.options].some(option=>option.value===profileState)){
+    stateSelect.value=profileState;
+  }
   document.getElementById("explorer-search").value=profile.name;
   document.getElementById("explorer-results").innerHTML="";
-  setText("explorer-search-status",`Showing ${profile.name}'s ${year} U18 Boys results.`);
+  setText("explorer-search-status",`Showing ${profile.name}'s ${year} ${yearData.division} profile.`);
   renderExplorerProfile(String(year),yearData,profile);
+  applySelectedBowlerContext(String(year),yearData,profile);
 
   if(updateUrl){
     const url=new URL(location.href);
     const state=document.getElementById("explorer-state")?.value || "";
     url.searchParams.set("year",String(year));
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state) url.searchParams.set("state",state);
     else url.searchParams.delete("state");
     url.searchParams.set("bowler",profile.id);
@@ -466,6 +1016,7 @@ async function copyExplorerProfileLink(){
   const url=new URL(location.href);
   const state=document.getElementById("explorer-state")?.value || "";
   url.searchParams.set("year",explorerSelectedYear);
+  url.searchParams.set("division",explorerSelectedDivision);
   if(state) url.searchParams.set("state",state);
   else url.searchParams.delete("state");
   url.searchParams.set("bowler",explorerSelectedProfile.id);
@@ -481,6 +1032,7 @@ async function copyExplorerProfileLink(){
 function bindBowlerExplorer(){
   const search=document.getElementById("explorer-search");
   const state=document.getElementById("explorer-state");
+  const division=document.getElementById("explorer-division");
   if(search.dataset.bound==="true") return;
   search.dataset.bound="true";
   search.addEventListener("input",renderExplorerMatches);
@@ -491,7 +1043,8 @@ function bindBowlerExplorer(){
   document.querySelectorAll("[data-explorer-year]").forEach(button=>{
     button.addEventListener("click",()=>{
       const targetYear=button.dataset.explorerYear;
-      const targetYearData=explorerYearData(targetYear);
+      if(targetYear==="2025") setExplorerDivision("U18B");
+      const targetYearData=explorerYearData(targetYear,explorerSelectedDivision);
       const preferredState=state.value;
       const match=explorerSelectedProfile ? matchingExplorerProfile(explorerSelectedProfile,targetYearData) : null;
       setExplorerYear(targetYear);
@@ -500,19 +1053,40 @@ function bindBowlerExplorer(){
       else clearExplorerProfile();
     });
   });
-  state.addEventListener("change",()=>{
-    if(explorerSelectedProfile){
-      explorerSelectedProfile=null;
-      document.getElementById("explorer-profile").hidden=true;
-      search.value="";
-    }
+  division.addEventListener("change",()=>{
+    setExplorerDivision(division.value);
+    explorerSelectedProfile=null;
+    document.getElementById("explorer-profile").hidden=true;
+    search.value="";
+    const yearData=explorerYearData(explorerSelectedYear);
+    populateExplorerStates(yearData,state.value);
     const url=new URL(location.href);
     url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state.value) url.searchParams.set("state",state.value);
     else url.searchParams.delete("state");
     url.searchParams.delete("bowler");
     history.replaceState({},"",url);
     renderExplorerMatches();
+    restoreDefaultDashboardContext();
+    refreshStateLeaderboard();
+  });
+  state.addEventListener("change",()=>{
+    if(explorerSelectedProfile){
+      explorerSelectedProfile=null;
+      document.getElementById("explorer-profile").hidden=true;
+      search.value="";
+      restoreDefaultDashboardContext();
+    }
+    const url=new URL(location.href);
+    url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
+    if(state.value) url.searchParams.set("state",state.value);
+    else url.searchParams.delete("state");
+    url.searchParams.delete("bowler");
+    history.replaceState({},"",url);
+    renderExplorerMatches();
+    refreshStateLeaderboard();
   });
   document.getElementById("explorer-clear").addEventListener("click",()=>clearExplorerProfile());
   document.getElementById("explorer-copy-link").addEventListener("click",copyExplorerProfileLink);
@@ -522,24 +1096,33 @@ async function loadBowlerExplorer(){
   const response=await fetch(`data/bowlers.json?v=${Date.now()}`,{cache:"no-store"});
   if(!response.ok) throw new Error(`Bowler explorer returned ${response.status}`);
   bowlerExplorerData=await response.json();
-  const live=explorerYearData("2026");
-  const archive=explorerYearData("2025");
-  const liveCount=live?.bowlers?.length || 0;
+  const liveRoot=bowlerExplorerData?.years?.["2026"];
+  const liveDivisions=Object.values(liveRoot?.divisions || {});
+  const liveCount=liveDivisions.reduce((sum,item)=>sum+(item?.profile_count || item?.bowlers?.length || 0),0);
+  const registrationCount=liveDivisions.reduce((sum,item)=>sum+(item?.registration_count || 0),0);
+  const archive=explorerYearData("2025","U18B");
   const archiveCount=archive?.bowlers?.length || 0;
-  setText("explorer-count-2026",liveCount?`${liveCount.toLocaleString()} live`:"Unavailable");
+  setText("explorer-count-2026",registrationCount?`${registrationCount.toLocaleString()} registered`:"Unavailable");
   setText("explorer-count-2025",archiveCount?`${archiveCount.toLocaleString()} final`:"Unavailable");
-  setText("explorer-data-status",`${liveCount.toLocaleString()} live · ${archiveCount.toLocaleString()} archived`);
+  setText("explorer-data-status",`${registrationCount.toLocaleString()} registered across 8 divisions · ${archiveCount.toLocaleString()} archived U18B`);
   document.getElementById("explorer-search").disabled=false;
   bindBowlerExplorer();
 
   const params=new URLSearchParams(location.search);
   const requestedYear=params.get("year")==="2025" ? "2025" : "2026";
+  const requestedDivision=requestedYear==="2025" ? "U18B" : (EXPLORER_DIVISIONS[params.get("division")] ? params.get("division") : "U18B");
   const requestedState=String(params.get("state") || "").toUpperCase();
   const requestedBowler=params.get("bowler");
+  setExplorerDivision(requestedDivision);
+  const requestedYearData=explorerYearData(requestedYear,requestedDivision);
+  const requestedProfile=(requestedYearData?.bowlers || []).find(bowler=>bowler.id===requestedBowler || bowler.registration_id===requestedBowler);
+  const initialState=requestedState || (requestedProfile ? explorerStateValue(requestedProfile) : "AL");
   setExplorerYear(requestedYear);
-  populateExplorerStates(explorerYearData(requestedYear),requestedState);
-  if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false})) return;
+  populateExplorerStates(requestedYearData,initialState);
+  if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false,syncState:!requestedState})) return;
   renderExplorerMatches();
+  restoreDefaultDashboardContext();
+  refreshStateLeaderboard();
 }
 
 function currentVisitSnapshot(data){
@@ -552,6 +1135,21 @@ function currentVisitSnapshot(data){
     games_complete:data.current?.games_complete ?? null,
     pins_from_cut:data.current?.pins_from_cut ?? null
   };
+}
+
+function captureDefaultVisitView(){
+  defaultVisitView={
+    title:document.getElementById("visit-title")?.textContent || "Since your last visit",
+    summary:document.getElementById("visit-summary")?.textContent || "",
+    changes:document.getElementById("visit-changes")?.innerHTML || ""
+  };
+}
+
+function restoreDefaultVisitView(){
+  if(!defaultVisitView) return;
+  setText("visit-title",defaultVisitView.title);
+  setText("visit-summary",defaultVisitView.summary);
+  document.getElementById("visit-changes").innerHTML=defaultVisitView.changes;
 }
 
 function renderSinceLastVisit(data){
@@ -618,7 +1216,7 @@ function latestBlockSnapshots(history,current,projection){
   return [...byGames.values()].sort((a,b)=>Number(a.games_complete)-Number(b.games_complete));
 }
 
-function renderProgress(history,current,projection){
+function renderProgress(history,current,projection,bowlerName="Jack Wix"){
   const chart=document.getElementById("progress-chart");
   const positionHistory=document.getElementById("position-history");
   if(!chart || !positionHistory) return;
@@ -632,16 +1230,19 @@ function renderProgress(history,current,projection){
   }));
 
   if(!snapshots.length){
-    chart.innerHTML='<p class="muted">The progress comparison will appear when Jack\'s first scores are posted.</p>';
+    chart.innerHTML=`<p class="muted">The progress comparison will appear when ${escapeHtml(possessiveName(bowlerName))} first scores are posted.</p>`;
     positionHistory.innerHTML="";
     return;
   }
 
   const values=snapshots.flatMap(snapshot=>[snapshot.average,snapshot.cut_pace_average]).filter(Number.isFinite);
+  const hasCutPace=snapshots.some(snapshot=>Number.isFinite(snapshot.cut_pace_average));
   const chartMax=Math.min(300,Math.max(200,Math.ceil(Math.max(...values,200)/25)*25));
   const chartLabel=snapshots.map(snapshot=>{
     const cut=Number.isFinite(snapshot.cut_pace_average) ? snapshot.cut_pace_average.toFixed(2) : "unavailable";
-    return `After ${snapshot.games_complete} games, Jack averaged ${snapshot.average.toFixed(2)} and the estimated cut pace was ${cut}`;
+    return hasCutPace
+      ? `After ${snapshot.games_complete} games, ${bowlerName} averaged ${snapshot.average.toFixed(2)} and the estimated cut pace was ${cut}`
+      : `After ${snapshot.games_complete} games, ${bowlerName} averaged ${snapshot.average.toFixed(2)}`;
   }).join(". ");
 
   chart.setAttribute("role","img");
@@ -655,7 +1256,7 @@ function renderProgress(history,current,projection){
         return `<div class="chart-group">
           <div class="chart-bars" aria-hidden="true">
             <div class="chart-bar jack-bar" style="--bar-height:${jackHeight}%"><span>${snapshot.average.toFixed(2)}</span></div>
-            <div class="chart-bar cut-bar" style="--bar-height:${cutHeight}%"><span>${Number.isFinite(snapshot.cut_pace_average)?snapshot.cut_pace_average.toFixed(2):"—"}</span></div>
+            ${hasCutPace?`<div class="chart-bar cut-bar" style="--bar-height:${cutHeight}%"><span>${Number.isFinite(snapshot.cut_pace_average)?snapshot.cut_pace_average.toFixed(2):"—"}</span></div>`:""}
           </div>
           <strong>${snapshot.games_complete} games</strong>
         </div>`;
@@ -668,7 +1269,7 @@ function renderProgress(history,current,projection){
       ? Number(previous.position)-Number(snapshot.position)
       : null;
     const movementText=movement==null ? "Starting position" : movement>0 ? `Up ${movement}` : movement<0 ? `Down ${Math.abs(movement)}` : "No rank change";
-    const gap=snapshot.pins_from_cut==null ? "Gap pending" : `${Number(snapshot.pins_from_cut)>0?"+":""}${snapshot.pins_from_cut} vs. pace`;
+    const gap=snapshot.pins_from_cut==null ? (hasCutPace ? "Gap pending" : "Cut comparison unavailable") : `${Number(snapshot.pins_from_cut)>0?"+":""}${snapshot.pins_from_cut} vs. pace`;
     return `<article>
       <span>After ${snapshot.games_complete} games</span>
       <strong>#${snapshot.position ?? "—"}${snapshot.field_size ? ` of ${snapshot.field_size}` : ""}</strong>
@@ -768,12 +1369,19 @@ function renderEquipment(equipment){
 }
 
 function renderBlocks(blocks){
-  document.getElementById("blocks").innerHTML=blocks.map((b,i)=>`
+  document.getElementById("blocks").innerHTML=blocks.map((b,i)=>{
+    const games=Array.isArray(b.games) ? b.games : [];
+    const total=Number(b.total)>0 ? Number(b.total) : null;
+    const totalText=total && games.length
+      ? `${total.toLocaleString()} pins · ${(total/games.length).toFixed(2)} avg.`
+      : total ? `${total.toLocaleString()} pins · individual games unavailable` : "Pending";
+    return `
     <article class="block">
-      <h3>Round ${i+1}</h3>
-      <div class="games">${(b.games||[]).map(g=>`<span class="game">${g}</span>`).join("") || '<span class="muted">Not bowled</span>'}</div>
-      <p class="block-total">${b.total ? `${b.total} pins · ${(b.total/b.games.length).toFixed(2)} avg.` : "Pending"}</p>
-    </article>`).join("");
+      <h3>Round ${b.round || i+1}</h3>
+      <div class="games">${games.map(g=>`<span class="game">${g}</span>`).join("") || `<span class="muted">${total?"Scores unavailable":"Not bowled"}</span>`}</div>
+      <p class="block-total">${totalText}</p>
+    </article>`;
+  }).join("");
 }
 
 function currentYearComparisonRows(data){
@@ -986,58 +1594,101 @@ function renderYearComparison(comparison,data){
     <a href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official ${currentYear} results ↗</a>`;
 }
 
-function renderAlabamaStatus(status){
-  const pill=document.getElementById("alabama-status-pill");
-  const note=document.getElementById("alabama-status-note");
-  if(!pill || !note) return;
-
-  // Trust report coverage, not the wall clock. Bowl.com may post a squad late.
-  const isComplete=status.status==="complete";
-
-  pill.textContent=isComplete ? "Day 1 field complete" : "Partial Day 1 field";
-  pill.className=`pill ${isComplete ? "alabama-complete" : "alabama-partial"}`;
-  note.textContent=isComplete
-    ? (status.complete_note || "The Alabama bowler list is complete and reflects the latest Bowl.com report.")
-    : (status.partial_note || "Additional Alabama bowlers are scheduled later today. This list will expand as their scores are posted, and will be complete after today's squads.");
+function stateLeaderboardBaseline(yearData,bowlers){
+  const preferred=explorerSelectedProfile || activeDashboardContext?.profile;
+  const matched=preferred ? matchingExplorerProfile(preferred,yearData) : null;
+  return matched || (yearData?.bowlers || []).find(bowler=>isJackWix(bowler)) || bowlers[0] || null;
 }
 
-function renderAlabama(bowlers,jackTotal){
+function refreshStateLeaderboard(refreshVisibility=true){
+  const select=document.getElementById("explorer-state");
+  const yearData=explorerYearData(explorerSelectedYear);
+  const stateCode=select?.value || "";
+  const division=yearData?.division || EXPLORER_DIVISIONS[explorerSelectedDivision] || "Junior Gold";
+  const hasStateSelection=Boolean(yearData && stateCode && stateCode!=="__NONE__");
+  if(!hasStateSelection){
+    setSectionAvailability("section-alabama",false);
+    setText("state-leaderboard-eyebrow",`${explorerSelectedYear} state results`);
+    setText("alabama-title",`State ${division} participants`);
+    if(refreshVisibility) refreshSectionVisibilityLabels();
+    return;
+  }
+
+  const stateName=STATE_NAMES[stateCode] || stateCode;
+  const bowlers=(yearData.bowlers || [])
+    .filter(bowler=>explorerStateValue(bowler)===stateCode)
+    .sort((a,b)=>(a.rank==null?Number.MAX_SAFE_INTEGER:Number(a.rank))-(b.rank==null?Number.MAX_SAFE_INTEGER:Number(b.rank)) || a.name.localeCompare(b.name));
+  if(!bowlers.length){
+    setSectionAvailability("section-alabama",false);
+    if(refreshVisibility) refreshSectionVisibilityLabels();
+    return;
+  }
+  setSectionAvailability("section-alabama",true);
+  const baseline=stateLeaderboardBaseline(yearData,bowlers);
+  const isFinal=yearData.status==="final";
+  const context={stateCode,stateName,year:String(yearData.year),fieldSize:yearData.field_size,baseline};
+
+  setText("state-leaderboard-eyebrow",`${yearData.year} selected state`);
+  setText("alabama-title",`${stateName} ${division} participants`);
+  setText("favorites-title",`Favorite ${stateName} bowlers`);
+  setText("state-comparison-heading",`vs. ${baseline?.name || "selected bowler"}`);
+  const pill=document.getElementById("alabama-status-pill");
+  pill.textContent=isFinal ? `Final ${yearData.year} field` : `Live ${yearData.year} field`;
+  pill.className=`pill ${isFinal ? "alabama-complete" : "alabama-partial"}`;
+  setText(
+    "alabama-status-note",
+    `${bowlers.length.toLocaleString()} ${stateName} ${division} bowler${bowlers.length===1?"":"s"}. ${Number(yearData.result_profile_count || yearData.field_size || 0).toLocaleString()} division profiles currently have published qualifying results; registered participants without scores remain listed as pending.`
+  );
+  renderAlabama(bowlers,baseline,context);
+  if(refreshVisibility) refreshSectionVisibilityLabels();
+}
+
+function sameLeaderboardBowler(left,right){
+  if(!left || !right) return false;
+  if(left.id && right.id) return left.id===right.id;
+  return normalizeExplorerText(left.name)===normalizeExplorerText(right.name)
+    && normalizeExplorerText(left.hometown)===normalizeExplorerText(right.hometown);
+}
+
+function renderAlabama(bowlers,baseline,context){
   const body=document.getElementById("alabama-bowlers");
   if(!body) return;
   if(!bowlers.length){
-    body.innerHTML='<tr><td colspan="8" class="muted">No Alabama bowlers found in the latest report.</td></tr>';
-    renderFavoriteBowlers([],jackTotal);
+    body.innerHTML=`<tr><td colspan="8" class="muted">No ${escapeHtml(context.stateName)} bowlers found in these results.</td></tr>`;
+    renderFavoriteBowlers([],baseline,context);
     return;
   }
 
   body.innerHTML=bowlers.map((b,index)=>{
-    const isJack=b.name.toLowerCase()==="jack wix";
+    const isBaseline=sameLeaderboardBowler(b,baseline);
     const isFavorite=favoriteBowlers.includes(b.name);
-    const diff=isJack ? 0 : Number(b.total)-Number(jackTotal);
-    const diffText=diff===0 ? "Jack" : `${diff>0?"+":""}${diff}`;
+    const diff=baseline ? Number(b.total)-Number(baseline.total) : null;
+    const diffText=isBaseline ? "Baseline" : Number.isFinite(diff) ? `${diff>0?"+":""}${diff}` : "—";
+    const rank=b.rank ?? b.position;
+    const comparisonLabel=`vs. ${baseline?.name || "selected bowler"}`;
 
-    return `<tr class="${isJack?"jack":""}">
+    return `<tr class="${isBaseline?"comparison-anchor":""}">
       <td class="favorite-cell" data-label="Favorite">
         <button class="favorite-button" type="button" data-favorite-index="${index}" aria-pressed="${isFavorite}" aria-label="${isFavorite?"Remove":"Add"} ${escapeHtml(b.name)} ${isFavorite?"from":"to"} favorites">${isFavorite?"★":"☆"}</button>
       </td>
-      <td class="rank" data-label="Rank">#${b.rank}${b.tied?"T":""}</td>
+      <td class="rank" data-label="Rank">${rank==null?"Pending":`#${rank}${b.tied?"T":""}`}</td>
       <td class="bowler" data-label="Bowler">
         <button class="bowler-name-button" type="button" data-bowler-index="${index}" aria-label="View tournament details for ${escapeHtml(b.name)}">
-          ${escapeHtml(b.name)}${isJack?" ⭐":""}
+          ${escapeHtml(b.name)}${isBaseline?" ◆":""}
         </button>
       </td>
       <td data-label="Hometown">${escapeHtml(b.hometown)}</td>
-      <td data-label="Games">${b.games_complete}</td>
-      <td data-label="Total">${b.total}</td>
-      <td data-label="Average">${Number(b.average).toFixed(2)}</td>
-      <td data-label="vs. Jack" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
+      <td data-label="Games">${Number(b.games_complete)>0?b.games_complete:"—"}</td>
+      <td data-label="Total">${b.total==null?"—":Number(b.total).toLocaleString()}</td>
+      <td data-label="Average">${b.average==null?"—":Number(b.average).toFixed(2)}</td>
+      <td data-label="${escapeHtml(comparisonLabel)}" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
     </tr>`;
   }).join("");
 
   body.querySelectorAll(".bowler-name-button").forEach(button=>{
     button.addEventListener("click",()=>{
       const bowler=bowlers[Number(button.dataset.bowlerIndex)];
-      openBowlerDialog(bowler,jackTotal);
+      openBowlerDialog(bowler,baseline,context);
     });
   });
 
@@ -1049,55 +1700,58 @@ function renderAlabama(bowlers,jackTotal){
       else favorites.add(bowler.name);
       favoriteBowlers=[...favorites];
       writeStoredJson(FAVORITES_KEY,favoriteBowlers);
-      renderAlabama(bowlers,jackTotal);
+      renderAlabama(bowlers,baseline,context);
     });
   });
 
-  renderFavoriteBowlers(bowlers,jackTotal);
+  renderFavoriteBowlers(bowlers,baseline,context);
 }
 
-function renderFavoriteBowlers(bowlers,jackTotal){
+function renderFavoriteBowlers(bowlers,baseline,context){
   const container=document.getElementById("favorite-bowlers");
   if(!container) return;
   const favorites=bowlers.filter(bowler=>favoriteBowlers.includes(bowler.name));
   if(!favorites.length){
-    container.innerHTML='<p class="favorites-empty">No favorites selected yet. Star Alabama bowlers to keep their latest position and average together here.</p>';
+    container.innerHTML=`<p class="favorites-empty">No favorites selected yet. Star ${escapeHtml(context.stateName)} bowlers to keep their position and average together here.</p>`;
     return;
   }
 
   container.innerHTML=favorites.map(bowler=>{
     const index=bowlers.indexOf(bowler);
-    const isJack=bowler.name.toLowerCase()==="jack wix";
-    const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
-    return `<article class="favorite-card ${isJack?"jack-favorite":""}">
+    const isBaseline=sameLeaderboardBowler(bowler,baseline);
+    const diff=baseline ? Number(bowler.total)-Number(baseline.total) : null;
+    const rank=bowler.rank ?? bowler.position;
+    return `<article class="favorite-card ${isBaseline?"comparison-anchor":""}">
       <button type="button" class="favorite-profile" data-bowler-index="${index}">${escapeHtml(bowler.name)}</button>
-      <div><span>Rank</span><strong>#${bowler.rank}${bowler.tied?"T":""}</strong></div>
-      <div><span>Average</span><strong>${Number(bowler.average).toFixed(2)}</strong></div>
-      <div><span>vs. Jack</span><strong>${isJack?"Jack":`${diff>0?"+":""}${diff}`}</strong></div>
+      <div><span>Rank</span><strong>${rank==null?"Pending":`#${rank}${bowler.tied?"T":""}`}</strong></div>
+      <div><span>Average</span><strong>${bowler.average==null?"—":Number(bowler.average).toFixed(2)}</strong></div>
+      <div><span>vs. ${escapeHtml(baseline?.name || "selected bowler")}</span><strong>${isBaseline?"Baseline":Number.isFinite(diff)?`${diff>0?"+":""}${diff}`:"—"}</strong></div>
     </article>`;
   }).join("");
 
   container.querySelectorAll(".favorite-profile").forEach(button=>{
-    button.addEventListener("click",()=>openBowlerDialog(bowlers[Number(button.dataset.bowlerIndex)],jackTotal));
+    button.addEventListener("click",()=>openBowlerDialog(bowlers[Number(button.dataset.bowlerIndex)],baseline,context));
   });
 }
 
-function openBowlerDialog(bowler,jackTotal){
+function openBowlerDialog(bowler,baseline,context){
   const dialog=document.getElementById("bowler-dialog");
   if(!dialog || !bowler) return;
 
-  const isJack=bowler.name.toLowerCase()==="jack wix";
-  const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
+  const isBaseline=sameLeaderboardBowler(bowler,baseline);
+  const diff=baseline ? Number(bowler.total)-Number(baseline.total) : null;
+  const rank=bowler.rank ?? bowler.position;
 
+  setText("state-bowler-dialog-kicker",`${context.stateName} bowler profile`);
   setText("bowler-dialog-title",bowler.name);
-  setText("bowler-dialog-hometown",bowler.hometown || "Alabama");
+  setText("bowler-dialog-hometown",bowler.hometown || context.stateName);
 
   const stats=[
-    ["Overall rank",`#${bowler.rank}${bowler.tied?"T":""}${dashboardData?.field_size?.current_report ? ` of ${dashboardData.field_size.current_report}` : ""}`],
+    ["Overall rank",rank==null ? "Results pending" : `#${rank}${bowler.tied?"T":""}${context.fieldSize ? ` of ${Number(context.fieldSize).toLocaleString()}` : ""}`],
     ["Games complete",bowler.games_complete ?? "—"],
     ["Total pins",bowler.total ?? "—"],
     ["Average",bowler.average == null ? "—" : Number(bowler.average).toFixed(2)],
-    ["Compared with Jack",isJack ? "Jack" : `${diff>0?"+":""}${diff} pins`]
+    [`Compared with ${baseline?.name || "selected bowler"}`,isBaseline ? "Baseline" : Number.isFinite(diff) ? `${diff>0?"+":""}${diff} pins` : "—"]
   ];
 
   document.getElementById("bowler-dialog-stats").innerHTML=stats.map(([label,value])=>`
@@ -1117,7 +1771,7 @@ function openBowlerDialog(bowler,jackTotal){
       return `<article class="bowler-round-card">
         <h4>Round ${block.round || index+1}</h4>
         <div class="games">${games.length ? games.map(score=>`<span class="game">${score}</span>`).join("") : '<span class="muted">Scores not posted</span>'}</div>
-        <p>${total == null ? "Pending" : `${total} pins · ${(total/games.length).toFixed(2)} avg.`}</p>
+        <p>${total == null ? "Pending" : games.length ? `${total} pins · ${(total/games.length).toFixed(2)} avg.` : `${total} pins · individual games unavailable`}</p>
       </article>`;
     }).join("");
   }else if(Array.isArray(bowler.scores) && bowler.scores.length){
@@ -1235,15 +1889,18 @@ function renderTournamentPath(stages,current){
 }
 
 function shareText(data){
-  const current=data.current || {};
-  const field=data.field_size?.current_report ?? current.field_size;
-  const next=(data.schedule || []).find(event=>new Date(event.start).getTime()>Date.now());
+  const context=activeDashboardContext;
+  const current=context?.current || data.current || {};
+  const name=context?.name || "Jack Wix";
+  const year=context?.year || "2026";
+  const field=context?.yearData?.field_size ?? data.field_size?.current_report ?? current.field_size;
+  const next=context?.isDefaultJack ? (data.schedule || []).find(event=>new Date(event.start).getTime()>Date.now()) : null;
   const lines=[
-    `Jack Wix Junior Gold update: #${current.position ?? "—"}${field ? ` of ${field}` : ""} after ${current.games_complete ?? "—"} of 16 qualifying games.`,
+    `${name} Junior Gold ${year} update: #${current.position ?? current.rank ?? "—"}${field ? ` of ${field}` : ""} after ${current.games_complete ?? "—"} of 16 qualifying games.`,
     `${current.total ?? "—"} total pins · ${current.average==null?"—":Number(current.average).toFixed(2)} average.`
   ];
   if(next) lines.push(`Next: ${next.title}, ${fmt.format(new Date(next.start))} at ${next.location}.`);
-  lines.push(data.site?.url || "https://jasonwix.github.io/jack-wix-junior-gold/");
+  lines.push(location.href);
   return lines.join(" ");
 }
 
@@ -1273,7 +1930,8 @@ function setupShareButton(){
     const text=shareText(dashboardData);
     try{
       if(typeof navigator.share==="function"){
-        await navigator.share({title:"Jack Wix · Junior Gold 2026",text,url:dashboardData.site?.url || location.href});
+        const context=activeDashboardContext;
+        await navigator.share({title:`${context?.name || "Jack Wix"} · Junior Gold ${context?.year || "2026"}`,text,url:location.href});
         status.textContent="Family update shared.";
       }else{
         await copyText(text);
@@ -1319,8 +1977,20 @@ function startCountdown(schedule){
   };
   update(); setInterval(update,1000);
 }
+async function loadDashboardVersion(){
+  const response=await fetch(`VERSION?v=${Date.now()}`,{cache:"no-store"});
+  if(!response.ok) throw new Error(`Dashboard version request failed: ${response.status}`);
+  const version=(await response.text()).trim();
+  if(!/^\d+$/.test(version)) throw new Error(`Invalid dashboard version: ${version}`);
+  setText("dashboard-version",`Dashboard version v${version}`);
+}
 setupCollapsibleSections();
 setupSectionControls();
+setupSectionVisibilityManager();
 setupBowlerDialog();
 setupShareButton();
+loadDashboardVersion().catch(error=>{
+  console.error(error);
+  setText("dashboard-version","Dashboard version unavailable");
+});
 load().catch(err=>{console.error(err);setText("next-title","Unable to load dashboard data")});
