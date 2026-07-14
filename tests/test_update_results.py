@@ -203,8 +203,19 @@ class ParserTests(unittest.TestCase):
         jack_2025 = next(bowler for bowler in archive["bowlers"] if bowler["name"] == "Jack Wix")
         jack_2026 = next(bowler for bowler in live["bowlers"] if bowler["name"] == "Jack Wix")
         self.assertEqual((jack_2025["total"], jack_2025["rank"]), (2631, 1009))
-        self.assertEqual(jack_2026["total"], 706)
+        self.assertGreater(jack_2026["games_complete"], 0)
+        self.assertGreater(jack_2026["total"], 0)
+        self.assertEqual(
+            jack_2026["total"],
+            sum(block["total"] for block in jack_2026["blocks"]),
+        )
+        self.assertAlmostEqual(
+            jack_2026["average"],
+            jack_2026["total"] / jack_2026["games_complete"],
+            delta=0.01,
+        )
         self.assertGreater(jack_2026["rank"], 0)
+        self.assertLessEqual(jack_2026["rank"], jack_2026["field_size"])
         self.assertFalse(
             any(
                 block["total"] == 0
