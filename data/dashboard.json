@@ -1,25 +1,25 @@
 {
-  "updated_at": "2026-07-13T15:46:39.657134-05:00",
+  "updated_at": "2026-07-13T19:07:51.352463-05:00",
   "current": {
-    "position": 260,
-    "total": 706,
-    "average": 176.5,
+    "position": 364,
+    "total": 324,
+    "average": 81.0,
     "games_complete": 4,
     "pins_from_cut": -27,
-    "needed_average": 194.5,
+    "needed_average": 226.3,
     "target_final_average": 190,
-    "field_size": 464
+    "field_size": 689
   },
   "blocks": [
     {
       "round": 1,
       "games": [
+        1,
+        1,
         132,
-        190,
-        163,
-        221
+        190
       ],
-      "total": 706
+      "total": 324
     },
     {
       "round": 2,
@@ -61,45 +61,214 @@
   ],
   "alabama_bowlers": [
     {
-      "rank": 70,
-      "tied": true,
-      "name": "Ryan Best",
-      "hometown": "Deatsville, AL",
-      "games_complete": 4,
-      "total": 792,
-      "average": 198.0,
-      "blocks": []
-    },
-    {
-      "rank": 88,
-      "tied": true,
-      "name": "Seth Wilson",
-      "hometown": "Elmore, AL",
-      "games_complete": 4,
-      "total": 779,
-      "average": 194.75,
-      "blocks": []
-    },
-    {
-      "rank": 260,
-      "tied": true,
-      "name": "Jack Wix",
-      "hometown": "Cullman, AL",
-      "games_complete": 4,
-      "total": 706,
-      "average": 176.5,
+      "name": "Braden Mauro",
+      "hometown": "Birmingham, AL",
       "blocks": [
         {
           "round": 1,
           "games": [
-            132,
-            190,
-            163,
-            221
+            21,
+            1,
+            198,
+            278
           ],
-          "total": 706
+          "total": 498
         }
-      ]
+      ],
+      "rank": 4,
+      "tied": false,
+      "games_complete": 4,
+      "total": 1074,
+      "average": 268.5
+    },
+    {
+      "name": "Ryan Best",
+      "hometown": "Deatsville, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            2,
+            1,
+            205,
+            183
+          ],
+          "total": 391
+        }
+      ],
+      "rank": 103,
+      "tied": false,
+      "games_complete": 4,
+      "total": 792,
+      "average": 198.0
+    },
+    {
+      "name": "Seth Wilson",
+      "hometown": "Elmore, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            2,
+            1,
+            190,
+            193
+          ],
+          "total": 386
+        }
+      ],
+      "rank": 123,
+      "tied": false,
+      "games_complete": 4,
+      "total": 779,
+      "average": 194.75
+    },
+    {
+      "name": "Braxton Nguyen",
+      "hometown": "Birmingham, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            21,
+            1,
+            165,
+            175
+          ],
+          "total": 362
+        }
+      ],
+      "rank": 186,
+      "tied": false,
+      "games_complete": 4,
+      "total": 444,
+      "average": 111.0
+    },
+    {
+      "name": "Will Mooneyhan",
+      "hometown": "Helena, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            21,
+            1,
+            173,
+            156
+          ],
+          "total": 351
+        }
+      ],
+      "rank": 263,
+      "tied": false,
+      "games_complete": 4,
+      "total": 674,
+      "average": 168.5
+    },
+    {
+      "name": "Jack Wix",
+      "hometown": "Cullman, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            1,
+            1,
+            132,
+            190
+          ],
+          "total": 324
+        }
+      ],
+      "rank": 364,
+      "tied": false,
+      "games_complete": 4,
+      "total": 944,
+      "average": 236.0
+    },
+    {
+      "name": "Jacob Cherry",
+      "hometown": "Birmingham, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            21,
+            1,
+            187,
+            134
+          ],
+          "total": 343
+        }
+      ],
+      "rank": 466,
+      "tied": false,
+      "games_complete": 4,
+      "total": 1284,
+      "average": 321.0
+    },
+    {
+      "name": "Noah J Loney",
+      "hometown": "Eva, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            21,
+            1,
+            174,
+            157
+          ],
+          "total": 353
+        }
+      ],
+      "rank": 484,
+      "tied": false,
+      "games_complete": 4,
+      "total": 1344,
+      "average": 336.0
+    },
+    {
+      "name": "Michael Mcclure",
+      "hometown": "Birmingham, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            21,
+            1,
+            160,
+            154
+          ],
+          "total": 336
+        }
+      ],
+      "rank": 526,
+      "tied": false,
+      "games_complete": 4,
+      "total": 1494,
+      "average": 373.5
+    },
+    {
+      "name": "Donavan Ayers",
+      "hometown": "Madison, AL",
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            22,
+            1,
+            152,
+            171
+          ],
+          "total": 346
+        }
+      ],
+      "rank": 590,
+      "tied": false,
+      "games_complete": 4,
+      "total": 1774,
+      "average": 443.5
     }
   ],
   "site": {
@@ -118,11 +287,11 @@
   },
   "source_status": {
     "status": "current",
-    "last_updated_at": "2026-07-13T14:37:00-05:00",
-    "last_checked_at": "2026-07-13T15:46:39.657134-05:00",
+    "last_updated_at": "2026-07-13T18:56:00-05:00",
+    "last_checked_at": "2026-07-13T19:07:51.352463-05:00",
     "report": "Qualifying Round 1",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
-    "age_minutes": 69
+    "age_minutes": 11
   },
   "equipment": {
     "handedness": "Two-Handed Right",
@@ -193,9 +362,9 @@
     "official": false,
     "label": "Placeholder estimate",
     "title": "There is no official cut yet",
-    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown above are temporary planning aids and may move substantially as more squads and rounds are posted.",
-    "gap_basis": "Temporary comparison using the dashboard's original Round 1 cut-place assumption",
-    "needed_average_basis": "Temporary calculation using a fixed 190.0 final-average planning target",
+    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown are temporary planning aids and may move substantially as more squads and rounds are posted.",
+    "gap_basis": "Temporary comparison to 192nd place in the Round 1 report",
+    "needed_average_basis": "Temporary calculation using a fixed 190.0 final-average target",
     "warning": "Do not present these values as the official advancement cut."
   },
   "alabama_status": {
@@ -205,13 +374,15 @@
     "complete_note": "The Alabama U18 Boys list is complete for the field and reflects the latest Bowl.com report."
   },
   "field_size": {
-    "current_report": 464,
+    "current_report": 689,
     "is_final": false,
     "reported_squads": [
       1,
       2,
       11,
-      12
+      12,
+      21,
+      22
     ],
     "expected_squads": [
       1,
@@ -223,6 +394,6 @@
       31,
       32
     ],
-    "note": "This is the number of U18B participants in the latest published Round 1 report. It will increase as the remaining Day 1 squads are posted."
+    "note": "Participants posted in the latest Round 1 report. The count will increase as remaining Day 1 squads are posted."
   }
 }
