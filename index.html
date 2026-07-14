@@ -79,7 +79,7 @@
     <details id="section-bowler-explorer" class="panel dashboard-section bowler-explorer-panel">
       <summary class="panel-head section-summary">
         <div>
-          <p class="label">All U18 Boys</p>
+          <p class="label">All Junior Gold divisions</p>
           <h2>Bowler Explorer</h2>
         </div>
         <span class="section-toggle" aria-hidden="true"></span>
@@ -87,8 +87,8 @@
       <div class="section-body">
         <div class="explorer-intro">
           <div>
-            <h3>Find any 2025 or 2026 competitor</h3>
-            <p>Choose a year, browse every bowler from a selected state, or search by bowler name or hometown. Profiles show only the standings, qualifying blocks, and year-over-year comparisons available in the official reports.</p>
+            <h3>Find any 2026 competitor</h3>
+            <p>Choose any U12, U14, U16, or U18 boys or girls division, then browse by state or search by name or hometown. Every official participant-report entry is searchable; scores and standings appear as Bowl.com publishes them. The 2025 comparison remains available for U18 Boys.</p>
           </div>
           <span id="explorer-data-status" class="pill explorer-data-status">Loading bowlers…</span>
         </div>
@@ -99,6 +99,19 @@
             <button type="button" data-explorer-year="2026" aria-pressed="true">2026 <span id="explorer-count-2026">Live</span></button>
             <button type="button" data-explorer-year="2025" aria-pressed="false">2025 <span id="explorer-count-2025">Final</span></button>
           </fieldset>
+          <label class="explorer-division-label" for="explorer-division">
+            <span>Division</span>
+            <select id="explorer-division">
+              <option value="U12B">U12 Boys</option>
+              <option value="U12G">U12 Girls</option>
+              <option value="U14B">U14 Boys</option>
+              <option value="U14G">U14 Girls</option>
+              <option value="U16B">U16 Boys</option>
+              <option value="U16G">U16 Girls</option>
+              <option value="U18B" selected>U18 Boys</option>
+              <option value="U18G">U18 Girls</option>
+            </select>
+          </label>
           <label class="explorer-state-label" for="explorer-state">
             <span>State</span>
             <select id="explorer-state" disabled>
@@ -112,7 +125,7 @@
         </div>
 
         <p id="explorer-search-status" class="explorer-search-status" role="status" aria-live="polite">Loading the official bowler lists…</p>
-        <div id="explorer-results" class="explorer-results" role="listbox" aria-label="Matching U18 Boys bowlers"></div>
+        <div id="explorer-results" class="explorer-results" role="listbox" aria-label="Matching Junior Gold bowlers"></div>
 
         <article id="explorer-profile" class="explorer-profile" hidden>
           <header class="explorer-profile-header">
@@ -231,7 +244,7 @@
       <div class="section-body">
         <section id="statistics-metrics" class="metrics" aria-label="Jack's current tournament statistics">
           <article class="metric-card">
-            <span>Position / U18B field</span>
+            <span id="position-field-label">Position / U18B field</span>
             <strong id="position">—</strong>
             <small id="field-size-note" class="metric-context">Loading participant count…</small>
           </article>

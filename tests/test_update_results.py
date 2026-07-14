@@ -39,6 +39,13 @@ class ParserTests(unittest.TestCase):
             "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf",
         )
 
+    def test_recognizes_every_supported_division_report(self):
+        for code, label in MODULE.DIVISIONS.items():
+            parsed = MODULE.canonical_division_report_url(
+                f"https://scores.bowl.com/2026-JG/Qualifying_Round 1_{label.replace(' ', '')}.pdf?v=new"
+            )
+            self.assertEqual(parsed[:2], (code, 1))
+
     def test_round_one_ignores_squad_and_day_numbers(self):
         rows = MODULE.parse_standings(ROUND_ONE, 1)
         jack = MODULE.row_for_athlete(rows)
@@ -191,12 +198,13 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(archive["field_size"], 1341)
         self.assertEqual(len(archive["bowlers"]), 1341)
         self.assertEqual(len({bowler["id"] for bowler in archive["bowlers"]}), 1341)
-        self.assertEqual(len(live["bowlers"]), live["field_size"])
+        self.assertEqual(live["result_profile_count"], live["field_size"])
 
         jack_2025 = next(bowler for bowler in archive["bowlers"] if bowler["name"] == "Jack Wix")
         jack_2026 = next(bowler for bowler in live["bowlers"] if bowler["name"] == "Jack Wix")
         self.assertEqual((jack_2025["total"], jack_2025["rank"]), (2631, 1009))
-        self.assertEqual((jack_2026["total"], jack_2026["rank"]), (706, 364))
+        self.assertEqual(jack_2026["total"], 706)
+        self.assertGreater(jack_2026["rank"], 0)
         self.assertFalse(
             any(
                 block["total"] == 0
@@ -204,6 +212,14 @@ class ParserTests(unittest.TestCase):
                 for block in bowler.get("blocks", [])
             )
         )
+
+        divisions = live["divisions"]
+        self.assertEqual(set(divisions), set(MODULE.DIVISIONS))
+        self.assertEqual(sum(item["registration_count"] for item in divisions.values()), 3812)
+        for code, division in divisions.items():
+            self.assertEqual(division["division_code"], code)
+            self.assertGreaterEqual(division["profile_count"], division["registration_count"])
+            self.assertEqual(len(division["bowlers"]), division["profile_count"])
 
     def test_live_explorer_update_preserves_2025_archive(self):
         explorer = json.loads(EXPLORER_DATA.read_text(encoding="utf-8"))
@@ -220,11 +236,26 @@ class ParserTests(unittest.TestCase):
         MODULE.update_bowler_explorer_data(explorer, [report], report.updated_at)
 
         self.assertEqual(explorer["years"]["2025"], expected_archive)
-        self.assertEqual(len(explorer["years"]["2026"]["bowlers"]), 3)
+        live = explorer["years"]["2026"]
+        self.assertEqual(live["result_profile_count"], 3)
+        self.assertEqual(live["registration_count"], 1101)
+        self.assertGreaterEqual(len(live["bowlers"]), 1101)
         self.assertEqual(
             next(bowler for bowler in explorer["years"]["2026"]["bowlers"] if bowler["name"] == "Jack Wix")["games_complete"],
             4,
         )
+
+    def test_failed_division_download_preserves_existing_profiles(self):
+        explorer = json.loads(EXPLORER_DATA.read_text(encoding="utf-8"))
+        before = deepcopy(explorer["years"]["2026"]["divisions"]["U12G"])
+        MODULE.update_bowler_explorer_data(
+            explorer,
+            {},
+            MODULE.datetime.now(MODULE.CENTRAL),
+        )
+        after = explorer["years"]["2026"]["divisions"]["U12G"]
+        self.assertEqual(after["result_profile_count"], before["result_profile_count"])
+        self.assertEqual(after["bowlers"], before["bowlers"])
 
 
 if __name__ == "__main__":

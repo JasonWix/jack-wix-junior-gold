@@ -2,12 +2,18 @@ let dashboardData = null;
 let bowlerExplorerData = null;
 let explorerSelectedProfile = null;
 let explorerSelectedYear = "2026";
+let explorerSelectedDivision = "U18B";
 let activeDashboardContext = null;
 let defaultVisitView = null;
 
 const STATE_NAMES = {
   AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
   AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon",FC:"Foreign country"
+};
+
+const EXPLORER_DIVISIONS = {
+  U12B:"U12 Boys",U12G:"U12 Girls",U14B:"U14 Boys",U14G:"U14 Girls",
+  U16B:"U16 Boys",U16G:"U16 Girls",U18B:"U18 Boys",U18G:"U18 Girls"
 };
 
 const SECTION_VISIBILITY_KEY = "jack-wix-dashboard:section-visibility:v2";
@@ -443,6 +449,7 @@ function profileBlocksForDashboard(profile){
 }
 
 function selectedCutContext(profile,year,projection){
+  if((profile?.division_code || explorerSelectedDivision)!=="U18B") return null;
   const games=Number(profile?.games_complete || 0);
   const currentScore=Number(projection?.current_score);
   const finalTarget=Number(projection?.projected_final_total);
@@ -492,7 +499,7 @@ function profileComparisonYear(profile,yearData){
   }));
   return {
     year:Number(yearData.year),
-    division:"U18 Boys",
+    division:yearData.division || "U18 Boys",
     field_size:yearData.field_size,
     blocks,
     final_qualifying:{
@@ -507,8 +514,9 @@ function profileComparisonYear(profile,yearData){
 }
 
 function buildSelectedComparison(profile){
-  const archive=explorerYearData("2025");
-  const live=explorerYearData("2026");
+  if((profile?.division_code || explorerSelectedDivision)!=="U18B") return null;
+  const archive=explorerYearData("2025","U18B");
+  const live=explorerYearData("2026","U18B");
   if(!archive || !live) return null;
   const profile2025=matchingExplorerProfile(profile,archive);
   const profile2026=matchingExplorerProfile(profile,live);
@@ -534,7 +542,8 @@ function buildSelectedComparison(profile){
 function applySelectedBowlerContext(year,yearData,profile){
   if(!dashboardData || !yearData || !profile) return;
   const selectedYear=String(year);
-  const isDefaultJack=isJackWix(profile) && selectedYear==="2026";
+  const division=yearData.division || EXPLORER_DIVISIONS[explorerSelectedDivision] || "U18 Boys";
+  const isDefaultJack=isJackWix(profile) && selectedYear==="2026" && yearData.division_code==="U18B";
   const blocks=profileBlocksForDashboard(profile);
   const hasScores=blocks.some(block=>Number(block.total)>0 || block.games.length);
   const cutContext=selectedCutContext(profile,selectedYear,dashboardData.cut_projection || {});
@@ -579,27 +588,43 @@ function applySelectedBowlerContext(year,yearData,profile){
   document.getElementById("jack-facebook-link").hidden=!isDefaultJack;
   document.title=`${profile.name} | Junior Gold ${selectedYear}`;
   document.querySelector('meta[name="description"]').content=`Official-results dashboard for ${profile.name} at the ${selectedYear} Junior Gold Championships.`;
-  setText("dashboard-context-eyebrow",isDefaultJack ? "Live Tournament Dashboard" : `Viewing ${selectedYear} U18 Boys Results`);
+  setText("dashboard-context-eyebrow",isDefaultJack ? "Live Tournament Dashboard" : `Viewing ${selectedYear} ${division} Results`);
   setText("dashboard-bowler-name",profile.name);
-  setText("dashboard-bowler-subtitle",`${selectedYear} U18 Boys · Squad ${profile.squad} · ${profile.hometown || "Hometown unavailable"}`);
+  setText("dashboard-bowler-subtitle",`${selectedYear} ${division} · Squad ${profile.squad || "—"} · ${profile.hometown || "Hometown unavailable"}`);
   setText("active-bowler-context",`Viewing ${profile.name} · ${selectedYear}`);
   const officialLink=document.getElementById("hero-official-link");
   officialLink.href=yearData.source_page || officialLink.href;
   officialLink.firstChild.textContent=`Official ${selectedYear} results `;
 
   setText("statistics-title",`${possessiveName(profile.name)} tournament statistics`);
+  setText("position-field-label",`Position / ${yearData.division_code || "U18B"} field`);
   document.getElementById("statistics-metrics").setAttribute("aria-label",`${possessiveName(profile.name)} current tournament statistics`);
-  setText("position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`);
-  setText("field-size-note",yearData.status==="final" ? "Final U18 Boys qualifying field" : "Published U18 Boys field; position and field size may change");
-  setText("total",Number(profile.total).toLocaleString());
-  setText("average",Number(profile.average).toFixed(2));
-  setText("games-complete",`${profile.games_complete}/16`);
+  setText("position",hasStandings ? `#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}` : "Not yet posted");
+  setText("field-size-note",yearData.status==="final" ? `Final ${division} qualifying field` : `Published ${division} results field; registration and results counts can differ`);
+  setText("total",hasStandings ? Number(profile.total).toLocaleString() : "—");
+  setText("average",hasStandings ? Number(profile.average).toFixed(2) : "—");
+  setText("games-complete",hasStandings ? `${profile.games_complete}/16` : "0/16 posted");
   document.querySelectorAll(".estimate-metric").forEach(card=>{card.hidden=!cutContext;});
   if(cutContext) renderCutProjection(cutContext.current,cutContext.projection);
 
   setText("scores-title",`${possessiveName(profile.name)} scores by block`);
   const refreshedAt=yearData.source_updated_at || yearData.generated_at;
   setText("updated",yearData.status==="final" ? `Final archived ${selectedYear} qualifying results` : `Official results updated ${refreshedAt ? fmt.format(new Date(refreshedAt)) : "recently"}`);
+  if(isDefaultJack){
+    renderSourceStatus(dashboardData.source_status || {},dashboardData.updated_at);
+  }else if(selectedYear==="2026"){
+    const latestReport=[...(yearData.reports || [])].sort((a,b)=>new Date(b.source_updated_at)-new Date(a.source_updated_at))[0];
+    const updatedAt=latestReport?.source_updated_at || yearData.source_updated_at;
+    const ageMinutes=updatedAt ? Math.max(0,Math.round((Date.now()-new Date(updatedAt).getTime())/60000)) : null;
+    renderSourceStatus({
+      status:ageMinutes==null?"unavailable":ageMinutes<=180?"current":"delayed",
+      last_updated_at:updatedAt,
+      last_checked_at:yearData.generated_at,
+      report:latestReport?`Qualifying Round ${latestReport.round}`:`${division} participant report`,
+      source_url:latestReport?.source_url || profile.registration_source_url || yearData.source_page,
+      age_minutes:ageMinutes
+    },yearData.generated_at);
+  }
   renderBlocks(blocks);
 
   setText("progress-description",cutContext
@@ -622,7 +647,9 @@ function applySelectedBowlerContext(year,yearData,profile){
   setText("equipment-title",`${possessiveName(profile.name)} registered ball card`);
   setText("dashboard-guide-context",comparison
     ? `The year-over-year section compares ${possessiveName(profile.name)} 2025 and 2026 results only at matching four-game checkpoints. Sections without source-backed data for this selection are hidden automatically. Personal display choices are stored only in this browser.`
-    : `This profile has official ${selectedYear} qualifying data. Sections requiring another year, a personal schedule, or equipment details are hidden when those data are unavailable. Personal display choices are stored only in this browser.`);
+    : hasStandings
+      ? `This profile has official ${selectedYear} ${division} qualifying results. Sections requiring another year, a personal schedule, or equipment details are hidden when those data are unavailable. Personal display choices are stored only in this browser.`
+      : `${profile.name} appears in the official ${selectedYear} ${division} participant report, but no qualifying score row is posted yet. Score-dependent sections stay hidden until Bowl.com publishes matching results.`);
 
   const availability={
     "section-bowler-explorer":true,
@@ -646,7 +673,7 @@ function applySelectedBowlerContext(year,yearData,profile){
 }
 
 function restoreDefaultDashboardContext(){
-  const live=explorerYearData("2026");
+  const live=explorerYearData("2026","U18B");
   const jack=(live?.bowlers || []).find(bowler=>isJackWix(bowler));
   if(jack) applySelectedBowlerContext("2026",live,jack);
 }
@@ -660,8 +687,11 @@ function normalizeExplorerText(value){
     .trim();
 }
 
-function explorerYearData(year){
-  return bowlerExplorerData?.years?.[String(year)] || null;
+function explorerYearData(year,division=explorerSelectedDivision){
+  const yearData=bowlerExplorerData?.years?.[String(year)] || null;
+  if(!yearData) return null;
+  if(String(year)==="2026" && yearData.divisions) return yearData.divisions[division] || null;
+  return division==="U18B" ? yearData : null;
 }
 
 function explorerReport(yearData,round){
@@ -707,9 +737,21 @@ function matchingExplorerProfile(profile,targetYearData){
 
 function setExplorerYear(year){
   explorerSelectedYear=String(year);
+  const division=document.getElementById("explorer-division");
+  if(explorerSelectedYear==="2025") explorerSelectedDivision="U18B";
+  if(division){
+    division.value=explorerSelectedDivision;
+    division.disabled=explorerSelectedYear==="2025";
+  }
   document.querySelectorAll("[data-explorer-year]").forEach(button=>{
     button.setAttribute("aria-pressed",String(button.dataset.explorerYear===explorerSelectedYear));
   });
+}
+
+function setExplorerDivision(code){
+  explorerSelectedDivision=EXPLORER_DIVISIONS[code] ? code : "U18B";
+  const division=document.getElementById("explorer-division");
+  if(division) division.value=explorerSelectedDivision;
 }
 
 function clearExplorerProfile({clearUrl=true}={}){
@@ -727,6 +769,7 @@ function clearExplorerProfile({clearUrl=true}={}){
     const url=new URL(location.href);
     const state=document.getElementById("explorer-state")?.value || "";
     url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state) url.searchParams.set("state",state);
     else url.searchParams.delete("state");
     url.searchParams.delete("bowler");
@@ -740,11 +783,12 @@ function renderExplorerMatches(){
   const yearData=explorerYearData(explorerSelectedYear);
   const query=normalizeExplorerText(search.value);
   const selectedState=document.getElementById("explorer-state")?.value || "";
+  const division=yearData?.division || EXPLORER_DIVISIONS[explorerSelectedDivision];
   results.innerHTML="";
 
   const minimumQueryLength=selectedState ? 1 : 2;
   if(!selectedState && query.length<minimumQueryLength){
-    setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} U18 Boys field.`);
+    setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} ${division} participants.`);
     return;
   }
 
@@ -753,24 +797,34 @@ function renderExplorerMatches(){
     if(query.length<minimumQueryLength) return true;
     const haystack=normalizeExplorerText(`${bowler.name} ${bowler.hometown}`);
     return query.split(" ").every(term=>haystack.includes(term));
-  }).sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  }).sort((a,b)=>{
+    const left=a.rank==null ? Number.MAX_SAFE_INTEGER : Number(a.rank);
+    const right=b.rank==null ? Number.MAX_SAFE_INTEGER : Number(b.rank);
+    return left-right || a.name.localeCompare(b.name);
+  });
   const visible=selectedState ? matches : matches.slice(0,20);
   const stateLabel=selectedState ? explorerStateLabel(selectedState) : "";
   setText(
     "explorer-search-status",
     selectedState
       ? matches.length
-        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} U18 Boys bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
-        : `No ${explorerSelectedYear} U18 Boys bowlers from ${stateLabel} matched “${search.value.trim()}”.`
+        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} ${division} bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} ${division} bowlers from ${stateLabel} matched “${search.value.trim()}”.`
       : matches.length
         ? `${matches.length.toLocaleString()} match${matches.length===1?"":"es"} in ${explorerSelectedYear}. Select a name to open the profile.`
-        : `No ${explorerSelectedYear} U18 Boys bowlers matched “${search.value.trim()}”.`
+        : `No ${explorerSelectedYear} ${division} bowlers matched “${search.value.trim()}”.`
   );
 
-  results.innerHTML=visible.map(bowler=>`<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
+  results.innerHTML=visible.map(bowler=>{
+    const hasResults=bowler.rank!=null && bowler.total!=null && bowler.average!=null;
+    const summary=hasResults
+      ? `<strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small>`
+      : `<strong>Registered</strong><small>Squad ${bowler.squad || "—"} · Results pending</small>`;
+    return `<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
     <span><strong>${escapeHtml(bowler.name)}</strong><small>${escapeHtml(bowler.hometown || "Hometown unavailable")}</small></span>
-    <span class="explorer-result-stats"><strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small></span>
-  </button>`).join("");
+    <span class="explorer-result-stats">${summary}</span>
+  </button>`;
+  }).join("");
 
   if(!selectedState && matches.length>visible.length){
     results.insertAdjacentHTML("beforeend",`<p class="explorer-result-limit">Showing the first ${visible.length}. Keep typing to narrow the list.</p>`);
@@ -807,8 +861,13 @@ function explorerCheckpoint(profile,gamesComplete){
 function renderExplorerYearComparison(year,yearData,profile){
   const section=document.getElementById("explorer-year-section");
   const container=document.getElementById("explorer-year-comparison");
+  if(yearData.division_code!=="U18B" || !Number(profile.games_complete)){
+    section.hidden=true;
+    container.innerHTML="";
+    return;
+  }
   const otherYear=String(year)==="2026" ? "2025" : "2026";
-  const otherYearData=explorerYearData(otherYear);
+  const otherYearData=explorerYearData(otherYear,"U18B");
   const otherProfile=otherYearData ? matchingExplorerProfile(profile,otherYearData) : null;
   if(!otherProfile){
     section.hidden=true;
@@ -879,6 +938,7 @@ function renderExplorerSources(yearData,profile){
   const relevant=reports.filter(report=>visibleRounds.has(Number(report.round)) || Number(report.round)===Number(profile.latest_round));
   const sourceLinks=[];
   if(yearData.source_page) sourceLinks.push(`<a href="${escapeHtml(yearData.source_page)}" target="_blank" rel="noopener">${yearData.year} results page ↗</a>`);
+  if(profile.registration_source_url) sourceLinks.push(`<a href="${escapeHtml(profile.registration_source_url)}" target="_blank" rel="noopener">${yearData.division} participant report ↗</a>`);
   relevant.forEach(report=>sourceLinks.push(`<a href="${escapeHtml(report.source_url)}" target="_blank" rel="noopener">Day ${report.round} report ↗</a>`));
   if(!sourceLinks.length){
     section.hidden=true;
@@ -889,23 +949,26 @@ function renderExplorerSources(yearData,profile){
   section.hidden=false;
   setText(
     "explorer-source-note",
-    yearData.archive_note || `${yearData.year} results reflect the latest valid official U18 Boys reports available to the dashboard.`
+    yearData.archive_note || `${yearData.year} ${yearData.division} profiles combine the official participant report with the latest valid qualifying results.`
   );
   links.innerHTML=[...new Set(sourceLinks)].join("");
 }
 
 function renderExplorerProfile(year,yearData,profile){
   const profileElement=document.getElementById("explorer-profile");
-  setText("explorer-profile-kicker",`${year} ${yearData.status==="final"?"final":"live"} U18 Boys results`);
+  const hasResults=profile.rank!=null && profile.total!=null && profile.average!=null && Number(profile.games_complete)>0;
+  setText("explorer-profile-kicker",`${year} ${yearData.status==="final"?"final":"live"} ${yearData.division}`);
   setText("explorer-profile-name",profile.name);
-  setText("explorer-profile-meta",`${profile.hometown || "Hometown unavailable"} · Squad ${profile.squad} · Latest posted Day ${profile.latest_round}`);
+  setText("explorer-profile-meta",`${profile.hometown || "Hometown unavailable"} · Squad ${profile.squad || "—"} · ${hasResults?`Latest posted Day ${profile.latest_round}`:"Registered participant; qualifying results not yet posted"}`);
 
   const metrics=[
-    explorerMetric("Position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`,yearData.status==="live"?"Published field; may change":"Final qualifying field"),
-    explorerMetric("Total pins",Number(profile.total).toLocaleString()),
-    explorerMetric("Average",Number(profile.average).toFixed(2)),
-    explorerMetric("Games complete",`${profile.games_complete} of 16`),
-    explorerMetric("Squad",profile.squad)
+    hasResults ? explorerMetric("Position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`,yearData.status==="live"?"Published results field; may change":"Final qualifying field") : "",
+    hasResults ? explorerMetric("Total pins",Number(profile.total).toLocaleString()) : "",
+    hasResults ? explorerMetric("Average",Number(profile.average).toFixed(2)) : "",
+    hasResults ? explorerMetric("Games complete",`${profile.games_complete} of 16`) : "",
+    explorerMetric("Squad",profile.squad),
+    explorerMetric("Qualifying event",profile.qualification_event),
+    explorerMetric("Waiver",profile.waiver_status)
   ].filter(Boolean);
   document.getElementById("explorer-profile-metrics").innerHTML=metrics.join("");
 
@@ -917,7 +980,7 @@ function renderExplorerProfile(year,yearData,profile){
 
 function selectExplorerProfile(year,id,{updateUrl=true,scroll=true,syncState=true}={}){
   const yearData=explorerYearData(year);
-  const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id);
+  const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id || bowler.registration_id===id);
   if(!profile) return false;
 
   setExplorerYear(year);
@@ -929,7 +992,7 @@ function selectExplorerProfile(year,id,{updateUrl=true,scroll=true,syncState=tru
   }
   document.getElementById("explorer-search").value=profile.name;
   document.getElementById("explorer-results").innerHTML="";
-  setText("explorer-search-status",`Showing ${profile.name}'s ${year} U18 Boys results.`);
+  setText("explorer-search-status",`Showing ${profile.name}'s ${year} ${yearData.division} profile.`);
   renderExplorerProfile(String(year),yearData,profile);
   applySelectedBowlerContext(String(year),yearData,profile);
 
@@ -937,6 +1000,7 @@ function selectExplorerProfile(year,id,{updateUrl=true,scroll=true,syncState=tru
     const url=new URL(location.href);
     const state=document.getElementById("explorer-state")?.value || "";
     url.searchParams.set("year",String(year));
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state) url.searchParams.set("state",state);
     else url.searchParams.delete("state");
     url.searchParams.set("bowler",profile.id);
@@ -952,6 +1016,7 @@ async function copyExplorerProfileLink(){
   const url=new URL(location.href);
   const state=document.getElementById("explorer-state")?.value || "";
   url.searchParams.set("year",explorerSelectedYear);
+  url.searchParams.set("division",explorerSelectedDivision);
   if(state) url.searchParams.set("state",state);
   else url.searchParams.delete("state");
   url.searchParams.set("bowler",explorerSelectedProfile.id);
@@ -967,6 +1032,7 @@ async function copyExplorerProfileLink(){
 function bindBowlerExplorer(){
   const search=document.getElementById("explorer-search");
   const state=document.getElementById("explorer-state");
+  const division=document.getElementById("explorer-division");
   if(search.dataset.bound==="true") return;
   search.dataset.bound="true";
   search.addEventListener("input",renderExplorerMatches);
@@ -977,7 +1043,8 @@ function bindBowlerExplorer(){
   document.querySelectorAll("[data-explorer-year]").forEach(button=>{
     button.addEventListener("click",()=>{
       const targetYear=button.dataset.explorerYear;
-      const targetYearData=explorerYearData(targetYear);
+      if(targetYear==="2025") setExplorerDivision("U18B");
+      const targetYearData=explorerYearData(targetYear,explorerSelectedDivision);
       const preferredState=state.value;
       const match=explorerSelectedProfile ? matchingExplorerProfile(explorerSelectedProfile,targetYearData) : null;
       setExplorerYear(targetYear);
@@ -985,6 +1052,24 @@ function bindBowlerExplorer(){
       if(match) selectExplorerProfile(targetYear,match.id);
       else clearExplorerProfile();
     });
+  });
+  division.addEventListener("change",()=>{
+    setExplorerDivision(division.value);
+    explorerSelectedProfile=null;
+    document.getElementById("explorer-profile").hidden=true;
+    search.value="";
+    const yearData=explorerYearData(explorerSelectedYear);
+    populateExplorerStates(yearData,state.value);
+    const url=new URL(location.href);
+    url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
+    if(state.value) url.searchParams.set("state",state.value);
+    else url.searchParams.delete("state");
+    url.searchParams.delete("bowler");
+    history.replaceState({},"",url);
+    renderExplorerMatches();
+    restoreDefaultDashboardContext();
+    refreshStateLeaderboard();
   });
   state.addEventListener("change",()=>{
     if(explorerSelectedProfile){
@@ -995,6 +1080,7 @@ function bindBowlerExplorer(){
     }
     const url=new URL(location.href);
     url.searchParams.set("year",explorerSelectedYear);
+    url.searchParams.set("division",explorerSelectedDivision);
     if(state.value) url.searchParams.set("state",state.value);
     else url.searchParams.delete("state");
     url.searchParams.delete("bowler");
@@ -1010,22 +1096,26 @@ async function loadBowlerExplorer(){
   const response=await fetch(`data/bowlers.json?v=${Date.now()}`,{cache:"no-store"});
   if(!response.ok) throw new Error(`Bowler explorer returned ${response.status}`);
   bowlerExplorerData=await response.json();
-  const live=explorerYearData("2026");
-  const archive=explorerYearData("2025");
-  const liveCount=live?.bowlers?.length || 0;
+  const liveRoot=bowlerExplorerData?.years?.["2026"];
+  const liveDivisions=Object.values(liveRoot?.divisions || {});
+  const liveCount=liveDivisions.reduce((sum,item)=>sum+(item?.profile_count || item?.bowlers?.length || 0),0);
+  const registrationCount=liveDivisions.reduce((sum,item)=>sum+(item?.registration_count || 0),0);
+  const archive=explorerYearData("2025","U18B");
   const archiveCount=archive?.bowlers?.length || 0;
-  setText("explorer-count-2026",liveCount?`${liveCount.toLocaleString()} live`:"Unavailable");
+  setText("explorer-count-2026",registrationCount?`${registrationCount.toLocaleString()} registered`:"Unavailable");
   setText("explorer-count-2025",archiveCount?`${archiveCount.toLocaleString()} final`:"Unavailable");
-  setText("explorer-data-status",`${liveCount.toLocaleString()} live · ${archiveCount.toLocaleString()} archived`);
+  setText("explorer-data-status",`${registrationCount.toLocaleString()} registered across 8 divisions · ${archiveCount.toLocaleString()} archived U18B`);
   document.getElementById("explorer-search").disabled=false;
   bindBowlerExplorer();
 
   const params=new URLSearchParams(location.search);
   const requestedYear=params.get("year")==="2025" ? "2025" : "2026";
+  const requestedDivision=requestedYear==="2025" ? "U18B" : (EXPLORER_DIVISIONS[params.get("division")] ? params.get("division") : "U18B");
   const requestedState=String(params.get("state") || "").toUpperCase();
   const requestedBowler=params.get("bowler");
-  const requestedYearData=explorerYearData(requestedYear);
-  const requestedProfile=(requestedYearData?.bowlers || []).find(bowler=>bowler.id===requestedBowler);
+  setExplorerDivision(requestedDivision);
+  const requestedYearData=explorerYearData(requestedYear,requestedDivision);
+  const requestedProfile=(requestedYearData?.bowlers || []).find(bowler=>bowler.id===requestedBowler || bowler.registration_id===requestedBowler);
   const initialState=requestedState || (requestedProfile ? explorerStateValue(requestedProfile) : "AL");
   setExplorerYear(requestedYear);
   populateExplorerStates(requestedYearData,initialState);
@@ -1514,11 +1604,12 @@ function refreshStateLeaderboard(refreshVisibility=true){
   const select=document.getElementById("explorer-state");
   const yearData=explorerYearData(explorerSelectedYear);
   const stateCode=select?.value || "";
+  const division=yearData?.division || EXPLORER_DIVISIONS[explorerSelectedDivision] || "Junior Gold";
   const hasStateSelection=Boolean(yearData && stateCode && stateCode!=="__NONE__");
   if(!hasStateSelection){
     setSectionAvailability("section-alabama",false);
     setText("state-leaderboard-eyebrow",`${explorerSelectedYear} state results`);
-    setText("alabama-title","State U18 Boys leaderboard");
+    setText("alabama-title",`State ${division} participants`);
     if(refreshVisibility) refreshSectionVisibilityLabels();
     return;
   }
@@ -1526,7 +1617,7 @@ function refreshStateLeaderboard(refreshVisibility=true){
   const stateName=STATE_NAMES[stateCode] || stateCode;
   const bowlers=(yearData.bowlers || [])
     .filter(bowler=>explorerStateValue(bowler)===stateCode)
-    .sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+    .sort((a,b)=>(a.rank==null?Number.MAX_SAFE_INTEGER:Number(a.rank))-(b.rank==null?Number.MAX_SAFE_INTEGER:Number(b.rank)) || a.name.localeCompare(b.name));
   if(!bowlers.length){
     setSectionAvailability("section-alabama",false);
     if(refreshVisibility) refreshSectionVisibilityLabels();
@@ -1538,7 +1629,7 @@ function refreshStateLeaderboard(refreshVisibility=true){
   const context={stateCode,stateName,year:String(yearData.year),fieldSize:yearData.field_size,baseline};
 
   setText("state-leaderboard-eyebrow",`${yearData.year} selected state`);
-  setText("alabama-title",`${stateName} U18 Boys leaderboard`);
+  setText("alabama-title",`${stateName} ${division} participants`);
   setText("favorites-title",`Favorite ${stateName} bowlers`);
   setText("state-comparison-heading",`vs. ${baseline?.name || "selected bowler"}`);
   const pill=document.getElementById("alabama-status-pill");
@@ -1546,7 +1637,7 @@ function refreshStateLeaderboard(refreshVisibility=true){
   pill.className=`pill ${isFinal ? "alabama-complete" : "alabama-partial"}`;
   setText(
     "alabama-status-note",
-    `${bowlers.length.toLocaleString()} ${stateName} U18 Boys bowler${bowlers.length===1?"":"s"} in the ${isFinal?"final":"latest published"} official ${yearData.year} results.`
+    `${bowlers.length.toLocaleString()} ${stateName} ${division} bowler${bowlers.length===1?"":"s"}. ${Number(yearData.result_profile_count || yearData.field_size || 0).toLocaleString()} division profiles currently have published qualifying results; registered participants without scores remain listed as pending.`
   );
   renderAlabama(bowlers,baseline,context);
   if(refreshVisibility) refreshSectionVisibilityLabels();
@@ -1580,16 +1671,16 @@ function renderAlabama(bowlers,baseline,context){
       <td class="favorite-cell" data-label="Favorite">
         <button class="favorite-button" type="button" data-favorite-index="${index}" aria-pressed="${isFavorite}" aria-label="${isFavorite?"Remove":"Add"} ${escapeHtml(b.name)} ${isFavorite?"from":"to"} favorites">${isFavorite?"★":"☆"}</button>
       </td>
-      <td class="rank" data-label="Rank">#${rank}${b.tied?"T":""}</td>
+      <td class="rank" data-label="Rank">${rank==null?"Pending":`#${rank}${b.tied?"T":""}`}</td>
       <td class="bowler" data-label="Bowler">
         <button class="bowler-name-button" type="button" data-bowler-index="${index}" aria-label="View tournament details for ${escapeHtml(b.name)}">
           ${escapeHtml(b.name)}${isBaseline?" ◆":""}
         </button>
       </td>
       <td data-label="Hometown">${escapeHtml(b.hometown)}</td>
-      <td data-label="Games">${b.games_complete}</td>
-      <td data-label="Total">${b.total}</td>
-      <td data-label="Average">${Number(b.average).toFixed(2)}</td>
+      <td data-label="Games">${Number(b.games_complete)>0?b.games_complete:"—"}</td>
+      <td data-label="Total">${b.total==null?"—":Number(b.total).toLocaleString()}</td>
+      <td data-label="Average">${b.average==null?"—":Number(b.average).toFixed(2)}</td>
       <td data-label="${escapeHtml(comparisonLabel)}" class="${diff>0?"positive":diff<0?"negative":""}">${diffText}</td>
     </tr>`;
   }).join("");
@@ -1632,8 +1723,8 @@ function renderFavoriteBowlers(bowlers,baseline,context){
     const rank=bowler.rank ?? bowler.position;
     return `<article class="favorite-card ${isBaseline?"comparison-anchor":""}">
       <button type="button" class="favorite-profile" data-bowler-index="${index}">${escapeHtml(bowler.name)}</button>
-      <div><span>Rank</span><strong>#${rank}${bowler.tied?"T":""}</strong></div>
-      <div><span>Average</span><strong>${Number(bowler.average).toFixed(2)}</strong></div>
+      <div><span>Rank</span><strong>${rank==null?"Pending":`#${rank}${bowler.tied?"T":""}`}</strong></div>
+      <div><span>Average</span><strong>${bowler.average==null?"—":Number(bowler.average).toFixed(2)}</strong></div>
       <div><span>vs. ${escapeHtml(baseline?.name || "selected bowler")}</span><strong>${isBaseline?"Baseline":Number.isFinite(diff)?`${diff>0?"+":""}${diff}`:"—"}</strong></div>
     </article>`;
   }).join("");
@@ -1656,7 +1747,7 @@ function openBowlerDialog(bowler,baseline,context){
   setText("bowler-dialog-hometown",bowler.hometown || context.stateName);
 
   const stats=[
-    ["Overall rank",`#${rank}${bowler.tied?"T":""}${context.fieldSize ? ` of ${Number(context.fieldSize).toLocaleString()}` : ""}`],
+    ["Overall rank",rank==null ? "Results pending" : `#${rank}${bowler.tied?"T":""}${context.fieldSize ? ` of ${Number(context.fieldSize).toLocaleString()}` : ""}`],
     ["Games complete",bowler.games_complete ?? "—"],
     ["Total pins",bowler.total ?? "—"],
     ["Average",bowler.average == null ? "—" : Number(bowler.average).toFixed(2)],

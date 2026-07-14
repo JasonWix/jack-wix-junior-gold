@@ -1,6 +1,6 @@
 # Jack Wix Junior Gold 2026 Dashboard
 
-A mobile-friendly GitHub Pages dashboard for Jack Wix's U18 Boys results, with a searchable U18 Boys results explorer for every published bowler in 2025 and 2026.
+A mobile-friendly GitHub Pages dashboard for Junior Gold families. The 2026 explorer covers every official U12, U14, U16, and U18 boys and girls participant, while Jack Wix remains the personalized default view.
 
 ## Publish
 
@@ -14,19 +14,20 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 ## Data behavior
 
-- Pulls the official 2026 Junior Gold U18 Boys PDFs from Bowl.com.
+- Pulls the official 2026 Junior Gold qualifying PDFs for all eight age/gender divisions from Bowl.com.
+- Uses the eight official `Advancers Report` participant PDFs as the complete searchable registration index, then enriches matching profiles with published qualifying scores and standings.
 - Searches for `Jack Wix`.
-- Builds `data/bowlers.json` so any published U18 Boys bowler can be searched by name or hometown, or browsed with every bowler from a selected state.
+- Builds `data/bowlers.json` so any 2026 U12/U14/U16/U18 boys or girls participant can be searched by name or hometown, or browsed by division and state.
 - Promotes the selected explorer profile into the active dashboard context so headings, statistics, scorecards, charts, cut estimates, source links, comparison copy, and sharing use that bowler's name and results.
 - Keeps all 1,341 final 2025 U18 Boys profiles in a fixed archive while refreshing the published 2026 field automatically.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
 - Keeps Jack's verified 2025 U18 Boys qualifying results as a fixed archive and compares them with 2026 after each matching four-game checkpoint.
 - The page automatically counts down to Jack's next Squad 1 qualifying block.
-- Builds a state-specific U18 Boys leaderboard from the explorer's selected year and state, with rank, hometown, games, total, average, and comparison to the active bowler.
+- Builds a state-specific participant list from the explorer's selected division, year, and state. Published results show rank, games, total, and average; registration-only rows are clearly marked pending.
 - Stores visitor-specific section visibility, section order, last-visit comparisons, and favorite state bowlers only in that visitor's browser.
 - `data/dashboard.json` contains a valid starting snapshot and can be edited manually if a PDF layout changes.
-- A selected bowler has a shareable `?year=YYYY&bowler=USBC-ID` profile URL. Profile sections are shown only when their underlying data exists.
+- A selected bowler has a shareable `?year=YYYY&division=U18B&bowler=ID` profile URL. Profile sections are shown only when their underlying data exists.
 
 ## Selected bowler and display controls
 
@@ -36,14 +37,21 @@ Every dashboard section is collapsed on each page load. The guide starts first, 
 
 ## Bowler Explorer
 
-The Bowler Explorer is designed for every U18 Boys family, not only Jack's. Choose 2025 or 2026, select a state to list every published bowler from that state, optionally narrow the list by name or hometown, and select a result to see the available official data:
+The Bowler Explorer is designed for every Junior Gold family, not only Jack's. For 2026, choose U12 Boys/Girls, U14 Boys/Girls, U16 Boys/Girls, or U18 Boys/Girls; select a state; optionally narrow the list by name or hometown; and open a profile. The fixed 2025 archive currently covers U18 Boys.
 
 - Current or final position, field size, total, average, games completed, and squad.
+- Registration event and waiver status when present in the official participant report.
 - Posted qualifying blocks and individual games when they are machine-readable.
 - A same-stage 2025-versus-2026 comparison when the same bowler can be matched in both years.
 - Direct links to the relevant official Bowl.com results page and reports.
 
-Empty sections are hidden. The interface never invents missing game scores. The archived 2025 Day 3 block total may be derived from adjacent official cumulative totals when the individual games are not machine-readable; those cards are labeled **Verified total** and explain the calculation.
+Empty sections are hidden. A participant found only in the registration report is shown as **Registered · Results pending**; the interface never invents a rank, score, or average. The archived 2025 Day 3 block total may be derived from adjacent official cumulative totals when the individual games are not machine-readable; those cards are labeled **Verified total** and explain the calculation.
+
+To rebuild the 2026 registration index from the eight official participant PDFs:
+
+```bash
+python scripts/build_2026_registration.py
+```
 
 To rebuild the complete 2025 archive locally:
 
@@ -51,7 +59,7 @@ To rebuild the complete 2025 archive locally:
 python scripts/build_2025_archive.py
 ```
 
-The live updater preserves that archive and replaces only the 2026 portion of `data/bowlers.json`.
+The live updater preserves the 2025 archive and merges current qualifying results into the fixed 2026 registration index.
 
 ## Important
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Refresh the Junior Gold dashboard from official Bowl.com U18 Boys PDFs."""
+"""Refresh Junior Gold profiles from official registration and results PDFs."""
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import io
 import json
 import math
@@ -29,7 +30,18 @@ EXPECTED_U18B_SQUADS = {1, 2, 11, 12, 21, 22, 31, 32}
 CENTRAL = ZoneInfo("America/Chicago")
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
 EXPLORER_DATA = Path(__file__).resolve().parents[1] / "data" / "bowlers.json"
+REGISTRATION_DATA = Path(__file__).resolve().parents[1] / "data" / "registration.json"
 HISTORY_LIMIT = 96
+DIVISIONS = {
+    "U12B": "U12 Boys",
+    "U12G": "U12 Girls",
+    "U14B": "U14 Boys",
+    "U14G": "U14 Girls",
+    "U16B": "U16 Boys",
+    "U16G": "U16 Girls",
+    "U18B": "U18 Boys",
+    "U18G": "U18 Girls",
+}
 
 REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; JackWixJuniorGoldDashboard/2.0)",
@@ -56,6 +68,7 @@ class Report:
     text: str
     updated_at: datetime
     rows: list[dict]
+    division_code: str = "U18B"
 
 
 def build_session() -> requests.Session:
@@ -73,25 +86,37 @@ def build_session() -> requests.Session:
     return session
 
 
-def canonical_report_url(url: str) -> tuple[int, str] | None:
-    """Recognize Bowl.com's encoded or literal-space U18 Boys report links."""
+def canonical_division_report_url(url: str) -> tuple[str, int, str] | None:
+    """Recognize an official qualifying report for any supported division."""
     absolute = urljoin(RESULTS_PAGE, url.strip())
     parts = urlsplit(absolute)
     decoded_path = unquote(parts.path)
     match = re.search(
-        r"Qualifying_Round\s*(?P<round>[1-4])_U18Boys\.pdf$",
+        r"Qualifying_Round\s*(?P<round>[1-4])_(?P<age>U(?:12|14|16|18))(?P<gender>Boys|Girls)\.pdf$",
         decoded_path,
         re.I,
     )
     if not match:
         return None
     round_number = int(match.group("round"))
+    division_code = f"{match.group('age')}{'B' if match.group('gender').lower() == 'boys' else 'G'}"
     encoded_path = quote(decoded_path, safe="/-_.~")
-    return round_number, urlunsplit((parts.scheme or "https", parts.netloc, encoded_path, "", ""))
+    return division_code, round_number, urlunsplit((parts.scheme or "https", parts.netloc, encoded_path, "", ""))
 
 
-def discover_pdf_links(session: requests.Session | None = None) -> dict[int, str]:
-    """Discover the four reports from the results page, with stable fallbacks."""
+def canonical_report_url(url: str) -> tuple[int, str] | None:
+    """Backward-compatible U18 Boys report recognizer used by parser tests."""
+    parsed = canonical_division_report_url(url)
+    if not parsed or parsed[0] != "U18B":
+        return None
+    return parsed[1], parsed[2]
+
+
+def discover_pdf_links(
+    session: requests.Session | None = None,
+    division_code: str = "U18B",
+) -> dict[int, str]:
+    """Discover a division's four reports, with stable URL fallbacks."""
     session = session or build_session()
     links: dict[int, str] = {}
     try:
@@ -99,9 +124,9 @@ def discover_pdf_links(session: requests.Session | None = None) -> dict[int, str
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         for anchor in soup.find_all("a", href=True):
-            parsed = canonical_report_url(anchor["href"])
-            if parsed:
-                round_number, url = parsed
+            parsed = canonical_division_report_url(anchor["href"])
+            if parsed and parsed[0] == division_code:
+                _, round_number, url = parsed
                 links[round_number] = url
     except requests.RequestException as exc:
         print(f"Results page discovery failed; using stable report URLs: {exc}")
@@ -109,7 +134,7 @@ def discover_pdf_links(session: requests.Session | None = None) -> dict[int, str
     for round_number in range(1, 5):
         links.setdefault(
             round_number,
-            f"{REPORT_BASE}Qualifying_Round%20{round_number}_U18Boys.pdf",
+            f"{REPORT_BASE}Qualifying_Round%20{round_number}_{DIVISIONS[division_code].replace(' ', '')}.pdf",
         )
     return links
 
@@ -234,9 +259,12 @@ def row_for_athlete(rows: list[dict], athlete: str = ATHLETE) -> dict | None:
     return next((row for row in rows if row["name"].casefold() == wanted), None)
 
 
-def fetch_reports(session: requests.Session | None = None) -> tuple[list[Report], dict[int, str]]:
+def fetch_reports(
+    session: requests.Session | None = None,
+    division_code: str = "U18B",
+) -> tuple[list[Report], dict[int, str]]:
     session = session or build_session()
-    links = discover_pdf_links(session)
+    links = discover_pdf_links(session, division_code)
     reports: list[Report] = []
     for round_number in range(1, 5):
         try:
@@ -244,8 +272,8 @@ def fetch_reports(session: requests.Session | None = None) -> tuple[list[Report]
             updated_at = parse_source_updated_at(text)
             rows = parse_standings(text, round_number)
             if updated_at is None or not rows:
-                raise ValueError("PDF does not contain a valid U18 Boys standings table")
-            reports.append(Report(round_number, links[round_number], text, updated_at, rows))
+                raise ValueError(f"PDF does not contain a valid {DIVISIONS[division_code]} standings table")
+            reports.append(Report(round_number, links[round_number], text, updated_at, rows, division_code))
             print(
                 f"Round {round_number}: {len(rows)} bowlers; "
                 f"official timestamp {updated_at.isoformat()}"
@@ -253,6 +281,24 @@ def fetch_reports(session: requests.Session | None = None) -> tuple[list[Report]
         except Exception as exc:
             print(f"Round {round_number}: {exc}")
     return reports, links
+
+
+def fetch_all_division_reports() -> tuple[dict[str, list[Report]], dict[str, dict[int, str]]]:
+    """Fetch all eight divisions concurrently while keeping each session isolated."""
+    reports_by_division: dict[str, list[Report]] = {}
+    links_by_division: dict[str, dict[int, str]] = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(fetch_reports, None, code): code for code in DIVISIONS}
+        for future in as_completed(futures):
+            code = futures[future]
+            try:
+                reports, links = future.result()
+            except Exception as exc:
+                print(f"{code}: division refresh failed: {exc}")
+                reports, links = [], discover_pdf_links(build_session(), code)
+            reports_by_division[code] = reports
+            links_by_division[code] = links
+    return reports_by_division, links_by_division
 
 
 def build_alabama_profiles(reports: list[Report]) -> list[dict]:
@@ -297,6 +343,7 @@ def build_all_bowler_profiles(
     field_size: int | None = None,
     status: str = "live",
     derive_missing_blocks: bool = False,
+    division_code: str = "U18B",
 ) -> dict:
     """Build the compact source-backed dataset used by the Bowler Explorer."""
     ordered_reports = sorted(reports, key=lambda item: (item.round_number, item.updated_at))
@@ -369,6 +416,7 @@ def build_all_bowler_profiles(
         profiles.append(
             {
                 "id": usbc_id,
+                "usbc_id": usbc_id,
                 "name": latest["name"],
                 "hometown": latest["hometown"],
                 "state": latest["state"],
@@ -381,18 +429,22 @@ def build_all_bowler_profiles(
                 "average": latest["average"],
                 "field_size": field_size,
                 "blocks": sorted(blocks.values(), key=lambda item: item["round"]),
+                "division_code": division_code,
+                "division": DIVISIONS[division_code],
             }
         )
 
     newest_report = max(ordered_reports, key=lambda report: report.updated_at)
     return {
         "year": year,
-        "division": "U18 Boys",
+        "division_code": division_code,
+        "division": DIVISIONS[division_code],
         "status": status,
         "generated_at": checked_at.isoformat(),
         "source_page": source_page,
         "source_updated_at": newest_report.updated_at.isoformat(),
         "field_size": field_size,
+        "result_profile_count": len(profiles),
         "reports": [
             {
                 "round": report.round_number,
@@ -406,24 +458,147 @@ def build_all_bowler_profiles(
     }
 
 
+def _identity_name(value: str) -> str:
+    tokens = re.findall(r"[a-z0-9]+", str(value or "").casefold())
+    suffixes = {"jr", "sr", "ii", "iii", "iv", "v"}
+    while tokens and tokens[-1] in suffixes:
+        tokens.pop()
+    # Registration reports omit middle initials; official standings often add them.
+    return " ".join((tokens[0], tokens[-1])) if len(tokens) >= 2 else " ".join(tokens)
+
+
+def _identity_city(value: str) -> str:
+    city = str(value or "").split(",", 1)[0]
+    return " ".join(re.findall(r"[a-z0-9]+", city.casefold()))
+
+
+def merge_registration_and_results(registration: dict, results: dict | None) -> dict:
+    """Return every registered participant, enriched with standings when matched."""
+    code = registration["division_code"]
+    registration_profiles = [dict(profile) for profile in registration.get("bowlers", [])]
+    result_profiles = [dict(profile) for profile in (results or {}).get("bowlers", [])]
+    candidates: dict[tuple[str, str], list[dict]] = {}
+    candidates_by_name: dict[str, list[dict]] = {}
+    for profile in registration_profiles:
+        name_key = _identity_name(profile["name"])
+        candidates.setdefault((name_key, profile.get("state", "")), []).append(profile)
+        candidates_by_name.setdefault(name_key, []).append(profile)
+
+    matched_registration_ids: set[str] = set()
+    enriched_results: list[dict] = []
+    for result in result_profiles:
+        name_key = _identity_name(result["name"])
+        matches = candidates.get((name_key, result.get("state", "")), [])
+        if not matches and len(candidates_by_name.get(name_key, [])) == 1:
+            # Results PDFs sometimes omit a state at the end of a wrapped row,
+            # and hometowns can change between registration and competition.
+            matches = candidates_by_name[name_key]
+        if len(matches) > 1:
+            city = _identity_city(result.get("hometown", ""))
+            city_matches = [profile for profile in matches if _identity_city(profile.get("hometown", "")) == city]
+            if city_matches:
+                matches = city_matches
+        match = matches[0] if len(matches) == 1 else None
+        if match:
+            matched_registration_ids.add(match["id"])
+            result.update(
+                {
+                    "registration_id": match["id"],
+                    "qualification_event": match.get("qualification_event"),
+                    "waiver_status": match.get("waiver_status"),
+                    "registration_source_url": registration.get("source_url"),
+                    "registration_source_as_of": registration.get("source_as_of"),
+                }
+            )
+        enriched_results.append(result)
+
+    registration_only = []
+    for profile in registration_profiles:
+        if profile["id"] in matched_registration_ids:
+            continue
+        registration_only.append(
+            {
+                **profile,
+                "registration_source_url": registration.get("source_url"),
+                "registration_source_as_of": registration.get("source_as_of"),
+                "latest_round": None,
+                "rank": None,
+                "tied": False,
+                "games_complete": 0,
+                "total": None,
+                "average": None,
+                "field_size": (results or {}).get("field_size"),
+                "blocks": [],
+            }
+        )
+
+    profiles = enriched_results + registration_only
+    reports = (results or {}).get("reports", [])
+    source_updated_at = (results or {}).get("source_updated_at")
+    return {
+        "year": 2026,
+        "division_code": code,
+        "division": registration["division"],
+        "status": "live",
+        "generated_at": (results or {}).get("generated_at"),
+        "source_page": RESULTS_PAGE,
+        "source_updated_at": source_updated_at,
+        "field_size": (results or {}).get("field_size", 0),
+        "result_profile_count": len(enriched_results),
+        "registration_count": registration.get("participant_count", len(registration_profiles)),
+        "profile_count": len(profiles),
+        "reports": reports,
+        "registration_source": {
+            "source_url": registration.get("source_url"),
+            "source_as_of": registration.get("source_as_of"),
+        },
+        "bowlers": sorted(profiles, key=lambda profile: (profile["name"].casefold(), profile["id"])),
+    }
+
+
 def update_bowler_explorer_data(
     data: dict,
-    reports: list[Report],
+    reports: list[Report] | dict[str, list[Report]],
     checked_at: datetime,
+    registration_data: dict | None = None,
 ) -> dict:
-    """Replace only the live 2026 slice; the verified 2025 archive is immutable."""
-    if not reports:
-        return data
-    field_size = len({row["usbc_id"] for report in reports for row in report.rows})
+    """Update all 2026 divisions while preserving the verified 2025 archive."""
+    reports_by_division = reports if isinstance(reports, dict) else {"U18B": reports}
+    registration_data = registration_data or json.loads(REGISTRATION_DATA.read_text(encoding="utf-8"))
+    existing_2026 = data.get("years", {}).get("2026", {})
+    existing_divisions = existing_2026.get("divisions", {})
+    divisions: dict[str, dict] = {}
+
+    for code in DIVISIONS:
+        division_reports = reports_by_division.get(code, [])
+        results = None
+        if division_reports:
+            field_size = max(len({row["usbc_id"] for row in report.rows}) for report in division_reports)
+            results = build_all_bowler_profiles(
+                division_reports,
+                year=2026,
+                source_page=RESULTS_PAGE,
+                checked_at=checked_at,
+                field_size=field_size,
+                status="live",
+                division_code=code,
+            )
+        elif existing_divisions.get(code):
+            # A transient division-specific download failure must not turn
+            # registration-only rows into fake result profiles or erase scores.
+            divisions[code] = {**existing_divisions[code], "generated_at": checked_at.isoformat()}
+            continue
+        elif code == "U18B" and existing_2026.get("bowlers"):
+            results = existing_2026
+        divisions[code] = merge_registration_and_results(
+            registration_data["divisions"][code],
+            results,
+        )
+        divisions[code]["generated_at"] = checked_at.isoformat()
+
+    u18b = divisions["U18B"]
     data.setdefault("version", 1)
-    data.setdefault("years", {})["2026"] = build_all_bowler_profiles(
-        reports,
-        year=2026,
-        source_page=RESULTS_PAGE,
-        checked_at=checked_at,
-        field_size=field_size,
-        status="live",
-    )
+    data.setdefault("years", {})["2026"] = {**u18b, "divisions": divisions}
     data["updated_at"] = checked_at.isoformat()
     return data
 
@@ -634,9 +809,10 @@ def main() -> int:
         else {"version": 1, "years": {}}
     )
     checked_at = datetime.now(CENTRAL)
-    reports, _ = fetch_reports()
-    update_dashboard(data, reports, checked_at)
-    update_bowler_explorer_data(explorer, reports, checked_at)
+    reports_by_division, _ = fetch_all_division_reports()
+    u18b_reports = reports_by_division.get("U18B", [])
+    update_dashboard(data, u18b_reports, checked_at)
+    update_bowler_explorer_data(explorer, reports_by_division, checked_at)
     write_json_atomic(args.data, data)
     write_json_atomic(args.explorer_data, explorer, compact=True)
 
