@@ -1,6 +1,6 @@
 {
-  "package": "Jack Wix Junior Gold dashboard data-aware personalized layout v8",
-  "validated_at": "2026-07-14T00:20:38-05:00",
+  "package": "Jack Wix Junior Gold dashboard pinned results status layout v9",
+  "validated_at": "2026-07-14T00:27:00-05:00",
   "official_report_as_of": "2026-07-13T18:56:00-05:00",
   "official_report_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
   "expected_result": {
@@ -35,6 +35,7 @@
     "Merged pull requests increment VERSION exactly once through a conflict-safe workflow; reruns and closed unmerged pull requests do not",
     "Sections and display-manager controls are hidden whenever the selected bowler has no source-backed data for them",
     "Next-block and last-qualifier cards are evaluated independently, and a single available card expands to the full overview width",
+    "Official results status is pinned above the dashboard toolbar and omitted from configurable drag, hide, and saved-order controls",
     "Dashboard and explorer JSON parse",
     "JavaScript passes node --check",
     "GitHub Actions workflow YAML parses",

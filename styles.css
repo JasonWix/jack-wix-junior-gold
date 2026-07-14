@@ -305,6 +305,7 @@ h2{font-size:clamp(1.3rem,2.5vw,1.9rem);line-height:1.15}
   box-shadow:0 10px 26px rgba(0,0,0,.11);
   backdrop-filter:blur(9px);
 }
+#section-results-status{margin:0 0 16px}
 .overview-section{margin-top:0}
 .visit-section{
   border-color:rgba(94,174,208,.55);

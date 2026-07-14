@@ -1,4 +1,4 @@
-JACK WIX JUNIOR GOLD DASHBOARD — DATA-AWARE PERSONALIZED LAYOUT V8
+JACK WIX JUNIOR GOLD DASHBOARD — PINNED RESULTS STATUS LAYOUT V9
 
 This ZIP contains the complete repository except for Git history. It includes
 the hidden .github workflows, the searchable 2025/2026 U18 Boys data, the 2025
@@ -57,6 +57,9 @@ WHAT THIS UPDATE ADDS
   including the next-block card, last-qualifier card, personal schedule, ball
   card, comparison, cut, progress, scores, and state leaderboard. Unavailable
   sections are also omitted from the display manager.
+- Pin Official results status directly below the Live Tournament Dashboard
+  header. It remains collapsible but cannot be hidden or displaced by a saved
+  drag-and-drop order when 2026 source status is available.
 
 EXPECTED CURRENT 2026 RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
 

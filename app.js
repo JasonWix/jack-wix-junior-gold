@@ -12,13 +12,13 @@ const STATE_NAMES = {
 
 const SECTION_VISIBILITY_KEY = "jack-wix-dashboard:section-visibility:v2";
 const SECTION_ORDER_KEY = "jack-wix-dashboard:section-order:v1";
+const PINNED_SECTION_IDS = new Set(["section-results-status"]);
 const DEFAULT_SECTION_VISIBILITY = {"section-equipment":false};
 const DEFAULT_SECTION_ORDER = [
   "section-dashboard-guide",
   "section-bowler-explorer",
   "section-qualifying-overview",
   "section-since-last-visit",
-  "section-results-status",
   "section-current-statistics",
   "section-year-comparison",
   "section-progress",
@@ -78,6 +78,7 @@ function sectionDisplayName(section){
 }
 
 function sectionUserVisible(saved,sectionId){
+  if(PINNED_SECTION_IDS.has(sectionId)) return true;
   if(Object.prototype.hasOwnProperty.call(saved,sectionId)) return saved[sectionId]!==false;
   return DEFAULT_SECTION_VISIBILITY[sectionId]!==false;
 }
@@ -86,15 +87,23 @@ function applyStoredSectionOrder(){
   const main=document.querySelector("main.container");
   const sections=[...document.querySelectorAll("details.dashboard-section")];
   if(!main || !sections.length) return;
-  const byId=new Map(sections.map(section=>[section.id,section]));
+  const pinned=sections.filter(section=>PINNED_SECTION_IDS.has(section.id));
+  const movable=sections.filter(section=>!PINNED_SECTION_IDS.has(section.id));
+  const byId=new Map(movable.map(section=>[section.id,section]));
   const saved=readStoredJson(SECTION_ORDER_KEY,[]);
   const requested=Array.isArray(saved) && saved.length ? saved : DEFAULT_SECTION_ORDER;
-  const ids=[...requested.filter(id=>byId.has(id)),...sections.map(section=>section.id).filter(id=>!requested.includes(id))];
+  const ids=[...requested.filter(id=>byId.has(id)),...movable.map(section=>section.id).filter(id=>!requested.includes(id))];
+  pinned.slice().reverse().forEach(section=>main.prepend(section));
   ids.forEach(id=>main.append(byId.get(id)));
 }
 
 function saveSectionOrder(){
-  writeStoredJson(SECTION_ORDER_KEY,[...document.querySelectorAll("details.dashboard-section")].map(section=>section.id));
+  writeStoredJson(
+    SECTION_ORDER_KEY,
+    [...document.querySelectorAll("details.dashboard-section")]
+      .filter(section=>!PINNED_SECTION_IDS.has(section.id))
+      .map(section=>section.id)
+  );
 }
 
 function refreshSectionOrderButtons(){
@@ -253,7 +262,8 @@ function refreshSectionVisibilityLabels(){
 
 function setupSectionVisibilityManager(){
   applyStoredSectionOrder();
-  const sections=[...document.querySelectorAll("details.dashboard-section")];
+  const sections=[...document.querySelectorAll("details.dashboard-section")]
+    .filter(section=>!PINNED_SECTION_IDS.has(section.id));
   const container=document.getElementById("section-visibility-options");
   if(!container) return;
   sections.forEach(section=>{section.dataset.contextAvailable="true";});

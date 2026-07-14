@@ -141,6 +141,7 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - Browser-saved favorite state bowlers and a compact comparison view.
 - A footer version loaded from `VERSION`, with an automatic increment after every merged pull request.
 - Data-aware section visibility: sections and overview cards disappear when the selected bowler has no source-backed data for them.
+- Official results status is pinned directly below the Live Tournament Dashboard header and cannot be displaced by saved section ordering.
 
 
 ## Latest dashboard update
@@ -153,6 +154,7 @@ The header, statistics, schedule, state leaderboard, equipment cards, and orderi
 - The selected-state table becomes stacked cards on smaller screens.
 - Section order and visibility are personal to each browser and can be changed without altering the official data.
 - Unavailable sections are removed from both the dashboard and its display manager until the selected bowler has the required data.
+- The Dashboard guide remains first among configurable sections; official results status stays above the section toolbar and display manager.
 
 
 ## Dashboard versioning
