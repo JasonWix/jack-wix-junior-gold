@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#family-overview">Skip to tournament progress</a>
   <header class="site-header">
     <div class="banner-shell">
       <img class="hero-banner" src="assets/jack-wix-banner.png" alt="Jack Wix Bowling, Junior Gold 2026, Minneapolis Minnesota">
@@ -47,6 +48,79 @@
   </header>
 
   <main class="container">
+    <section class="family-status-strip" aria-label="Official results freshness" aria-live="polite">
+      <span id="family-source-dot" class="status-dot" aria-hidden="true"></span>
+      <div>
+        <strong id="family-source-label">Checking the latest Bowl.com results…</strong>
+        <span id="family-source-detail"></span>
+      </div>
+      <a id="family-source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">Official report <span aria-hidden="true">↗</span></a>
+    </section>
+
+    <section id="family-overview" class="family-overview" aria-labelledby="family-headline">
+      <div class="family-overview-copy">
+        <p id="family-kicker" class="family-kicker">Jack's Junior Gold progress</p>
+        <h2 id="family-headline">Loading Jack's latest results…</h2>
+        <p id="family-summary" class="family-summary">We’re checking the official Bowl.com report now.</p>
+      </div>
+
+      <div class="family-metrics" aria-label="Tournament progress at a glance">
+        <article>
+          <span>Current position</span>
+          <strong id="family-position">—</strong>
+        </article>
+        <article>
+          <span>Total pins</span>
+          <strong id="family-total">—</strong>
+        </article>
+        <article>
+          <span>Average score</span>
+          <strong id="family-average">—</strong>
+        </article>
+        <article>
+          <span>Games bowled</span>
+          <strong id="family-games">—</strong>
+        </article>
+      </div>
+
+      <div class="family-progress" aria-label="Qualifying games completed">
+        <div class="family-progress-heading">
+          <strong>Qualifying progress</strong>
+          <span id="family-progress-label">0 of 16 games</span>
+        </div>
+        <div class="family-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="16" aria-valuenow="0" aria-labelledby="family-progress-label">
+          <span id="family-progress-fill"></span>
+        </div>
+        <p>Standings are based on total pins after 16 qualifying games. Position may change as other squads finish.</p>
+      </div>
+    </section>
+
+    <section class="family-now-grid" aria-label="Latest scores and upcoming schedule">
+      <article id="family-latest-card" class="family-now-card family-latest-card">
+        <p class="family-card-kicker">Latest scores</p>
+        <h2 id="family-latest-round">Waiting for posted scores</h2>
+        <div id="family-latest-games" class="family-score-list" aria-label="Latest game scores"></div>
+        <strong id="family-latest-total" class="family-card-result"></strong>
+        <p id="family-latest-note" class="family-card-note"></p>
+      </article>
+
+      <article id="family-next-card" class="family-now-card family-next-card">
+        <p class="family-card-kicker">Up next</p>
+        <h2 id="family-next-title">Checking Jack's schedule…</h2>
+        <p id="family-next-detail" class="family-card-note"></p>
+        <div id="family-countdown" class="family-countdown" aria-live="off">--d --h --m</div>
+      </article>
+    </section>
+
+    <details id="family-more" class="family-more">
+      <summary>
+        <div>
+          <strong>More tournament details</strong>
+          <span>Explore other bowlers, compare years, and view schedules, cut estimates, and equipment.</span>
+        </div>
+        <span class="family-more-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="family-more-body">
     <div class="dashboard-toolbar" aria-label="Dashboard section controls">
       <div class="dashboard-toolbar-context">
         <span>Dashboard sections</span>
@@ -496,6 +570,8 @@
       <div class="section-body">
         <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary planning estimate, not an official advancement target.</p>
         <p id="dashboard-guide-context">The year-over-year section compares Jack's final 2025 results with 2026 only at matching four-game checkpoints. The progress chart uses one final official snapshot for each completed 2026 block. “Since your last visit” and favorite bowlers are stored only in the current browser. All schedule and countdown times use Central Time.</p>
+      </div>
+    </details>
       </div>
     </details>
   </main>

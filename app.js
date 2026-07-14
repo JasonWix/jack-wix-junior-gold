@@ -5,6 +5,7 @@ let explorerSelectedYear = "2026";
 let explorerSelectedDivision = "U18B";
 let activeDashboardContext = null;
 let defaultVisitView = null;
+let familyCountdownTimer = null;
 
 const STATE_NAMES = {
   AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
@@ -90,7 +91,7 @@ function sectionUserVisible(saved,sectionId){
 }
 
 function applyStoredSectionOrder(){
-  const main=document.querySelector("main.container");
+  const main=document.querySelector(".family-more-body") || document.querySelector("main.container");
   const sections=[...document.querySelectorAll("details.dashboard-section")];
   if(!main || !sections.length) return;
   const pinned=sections.filter(section=>PINNED_SECTION_IDS.has(section.id));
@@ -340,6 +341,17 @@ async function load(){
   renderCutProjection(d.current || {}, d.cut_projection || {});
   setText("updated", `Dashboard refreshed ${fmt.format(new Date(d.updated_at))}`);
   renderSourceStatus(d.source_status || {}, d.updated_at);
+  renderFamilyDashboard({
+    name:"Jack Wix",
+    year:"2026",
+    current:{...d.current,field_size:fieldSize},
+    fieldSize,
+    blocks:d.blocks || [],
+    schedule:d.schedule || [],
+    source:d.source_status || {},
+    updatedAt:d.updated_at,
+    isDefaultJack:true
+  });
   renderSinceLastVisit(d);
   captureDefaultVisitView();
 
@@ -412,6 +424,113 @@ function renderSourceStatus(source, fallbackCheckedAt){
     link.href=source.source_url;
     link.textContent="Open latest report ↗";
   }
+}
+
+function formatSourceTime(value){
+  return value ? fmt.format(new Date(value)) : null;
+}
+
+function latestPostedBlock(blocks=[]){
+  return [...blocks].reverse().find(block=>blockHasPostedData(block)) || null;
+}
+
+function updateFamilyCountdown(schedule=[],isDefaultJack=false){
+  if(familyCountdownTimer) clearInterval(familyCountdownTimer);
+  const card=document.getElementById("family-next-card");
+  if(!card) return;
+  card.hidden=!isDefaultJack;
+  if(!isDefaultJack) return;
+
+  const update=()=>{
+    const now=Date.now();
+    const next=schedule.find(event=>event?.start && new Date(event.start).getTime()>now);
+    if(!next){
+      setText("family-next-title","Qualifying schedule complete");
+      setText("family-next-detail","Watch the official standings for the next stage of the tournament.");
+      setText("family-countdown","Complete");
+      return;
+    }
+    const remaining=new Date(next.start).getTime()-now;
+    const days=Math.floor(remaining/86400000);
+    const hours=Math.floor(remaining%86400000/3600000);
+    const minutes=Math.floor(remaining%3600000/60000);
+    setText("family-next-title",next.title || "Next qualifying block");
+    setText("family-next-detail",`${fmt.format(new Date(next.start))} · ${next.location || "Location pending"}`);
+    setText("family-countdown",`${days}d ${String(hours).padStart(2,"0")}h ${String(minutes).padStart(2,"0")}m`);
+  };
+  update();
+  familyCountdownTimer=setInterval(update,30000);
+}
+
+function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedule=[],source={},updatedAt,isDefaultJack=false}){
+  const games=Math.max(0,Number(current.games_complete || 0));
+  const total=current.total == null ? Number.NaN : Number(current.total);
+  const average=current.average == null ? Number.NaN : Number(current.average);
+  const rankValue=current.position ?? current.rank;
+  const fieldValue=fieldSize ?? current.field_size;
+  const rank=rankValue == null ? Number.NaN : Number(rankValue);
+  const field=fieldValue == null ? Number.NaN : Number(fieldValue);
+  const hasResults=games>0 && Number.isFinite(total) && Number.isFinite(average);
+  const firstName=String(name || "Bowler").split(" ")[0];
+  const rankedPlace=Number.isFinite(rank)
+    ? `#${rank}${Number.isFinite(field) ? ` of ${field.toLocaleString()}` : ""}`
+    : null;
+  const position=rankedPlace
+    ? `${current.tied ? "Tied for " : ""}${rankedPlace}`
+    : "Not yet posted";
+  const headlinePosition=rankedPlace
+    ? `${current.tied ? "tied for " : ""}${rankedPlace}`
+    : "not yet ranked";
+
+  setText("family-kicker",`${possessiveName(name || "Bowler")} Junior Gold ${year} progress`);
+  setText("family-headline",hasResults
+    ? `${firstName} is ${headlinePosition} after ${games} ${games===1 ? "game" : "games"}`
+    : `${possessiveName(name || "Bowler")} scores have not been posted yet`);
+  setText("family-summary",hasResults
+    ? `${total.toLocaleString()} total pins with a ${average.toFixed(2)} average. ${games<16 ? `${16-games} qualifying ${16-games===1 ? "game" : "games"} remain.` : "All 16 qualifying games are complete."}`
+    : "This page will update when Bowl.com publishes the official scores.");
+  setText("family-position",position);
+  setText("family-total",hasResults ? total.toLocaleString() : "—");
+  setText("family-average",hasResults ? average.toFixed(2) : "—");
+  setText("family-games",`${games} of 16`);
+  setText("family-progress-label",`${games} of 16 games`);
+  const progress=Math.min(100,(games/16)*100);
+  const progressTrack=document.querySelector(".family-progress-track");
+  progressTrack?.setAttribute("aria-valuenow",String(Math.min(16,games)));
+  const progressFill=document.getElementById("family-progress-fill");
+  if(progressFill) progressFill.style.width=`${progress}%`;
+
+  const latest=latestPostedBlock(blocks);
+  const latestCard=document.getElementById("family-latest-card");
+  latestCard.hidden=!latest;
+  if(latest){
+    const scores=(Array.isArray(latest.games) ? latest.games : []).map(Number).filter(Number.isFinite);
+    const blockTotal=Number(latest.total) || scores.reduce((sum,score)=>sum+score,0);
+    setText("family-latest-round",`Qualifying Round ${latest.round || "—"}`);
+    document.getElementById("family-latest-games").innerHTML=scores.length
+      ? scores.map((score,index)=>`<span><small>Game ${index+1}</small><strong>${score}</strong></span>`).join("")
+      : '<span class="family-score-pending">Individual game scores are unavailable.</span>';
+    setText("family-latest-total",blockTotal ? `${blockTotal.toLocaleString()} pins${scores.length ? ` · ${(blockTotal/scores.length).toFixed(2)} average` : ""}` : "Results posted");
+    setText("family-latest-note",`${possessiveName(firstName)} most recently posted qualifying block.`);
+  }
+
+  const sourceTime=formatSourceTime(source.last_updated_at);
+  const checkedTime=formatSourceTime(source.last_checked_at || updatedAt);
+  const status=source.status || "unknown";
+  const sourceDot=document.getElementById("family-source-dot");
+  if(sourceDot) sourceDot.className=`status-dot ${status}`;
+  setText("family-source-label",status==="current"
+    ? "Official results are current"
+    : status==="delayed"
+      ? "Bowl.com has not posted a recent update"
+      : status==="archive" ? `Final archived ${year} results` : "Official update time is unavailable");
+  setText("family-source-detail",[
+    sourceTime ? `Bowl.com updated ${sourceTime}` : null,
+    checkedTime ? `checked ${checkedTime}` : null
+  ].filter(Boolean).join(" · "));
+  const sourceLink=document.getElementById("family-source-link");
+  sourceLink.href=source.source_url || sourceLink.href;
+  updateFamilyCountdown(schedule,isDefaultJack);
 }
 
 function setText(id,v){document.getElementById(id).textContent=v}
@@ -626,6 +745,25 @@ function applySelectedBowlerContext(year,yearData,profile){
     },yearData.generated_at);
   }
   renderBlocks(blocks);
+  const familySource=isDefaultJack
+    ? dashboardData.source_status || {}
+    : {
+        status:selectedYear==="2026" ? "current" : "archive",
+        last_updated_at:yearData.source_updated_at,
+        last_checked_at:yearData.generated_at,
+        source_url:yearData.source_page
+      };
+  renderFamilyDashboard({
+    name:profile.name,
+    year:selectedYear,
+    current,
+    fieldSize:yearData.field_size,
+    blocks,
+    schedule:isDefaultJack ? dashboardData.schedule || [] : [],
+    source:familySource,
+    updatedAt:yearData.generated_at,
+    isDefaultJack
+  });
 
   setText("progress-description",cutContext
     ? `${possessiveName(profile.name)} tournament average compared with the temporary projected cut pace. Both values use pins per game.`
