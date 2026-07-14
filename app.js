@@ -1,5 +1,30 @@
 let dashboardData = null;
 
+const SECTION_STATE_KEY = "jack-wix-dashboard:section-state";
+
+function setupCollapsibleSections(){
+  let saved={};
+  try{
+    saved=JSON.parse(localStorage.getItem(SECTION_STATE_KEY) || "{}");
+  }catch(error){
+    console.warn("Unable to restore section state",error);
+  }
+
+  document.querySelectorAll("details.dashboard-section").forEach(section=>{
+    if(saved[section.id] === false) section.open=false;
+    if(saved[section.id] === true) section.open=true;
+
+    section.addEventListener("toggle",()=>{
+      saved[section.id]=section.open;
+      try{
+        localStorage.setItem(SECTION_STATE_KEY,JSON.stringify(saved));
+      }catch(error){
+        console.warn("Unable to save section state",error);
+      }
+    });
+  });
+}
+
 const fmt = new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago",timeZoneName:"short"});
 
 async function load(){
@@ -335,5 +360,6 @@ function startCountdown(schedule){
   };
   update(); setInterval(update,1000);
 }
+setupCollapsibleSections();
 setupBowlerDialog();
 load().catch(err=>{console.error(err);setText("next-title","Unable to load dashboard data")});
