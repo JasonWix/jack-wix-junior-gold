@@ -1,4 +1,4 @@
-# Workflow build: 2026-07-13-v2-single-schedule
+# Workflow build: 2026-07-13-v3-validated-parser
 name: Update Junior Gold dashboard
 
 on:
@@ -56,6 +56,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Validate parser
+        run: python -m unittest discover -s tests -v
+
       - name: Refresh and publish dashboard data
         shell: bash
         run: |
@@ -73,6 +76,18 @@ jobs:
             git reset --hard origin/main
 
             python scripts/update_results.py
+
+            python - <<'PY'
+            import json
+            data = json.load(open("data/dashboard.json", encoding="utf-8"))
+            current = data["current"]
+            assert current["games_complete"] in {4, 8, 12, 16}
+            assert 0 < current["average"] <= 300
+            assert abs(current["total"] - current["average"] * current["games_complete"]) <= 0.1
+            assert current["field_size"] >= current["position"]
+            assert data["source_status"]["status"] in {"current", "delayed"}
+            print("Dashboard validation passed:", current)
+            PY
 
             if git diff --quiet -- data/dashboard.json; then
               echo "No dashboard changes detected."

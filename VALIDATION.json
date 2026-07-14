@@ -1,20 +1,27 @@
 {
-  "package": "Jack Wix Junior Gold dashboard complete replacement",
-  "validated_files": [
-    ".github/workflows/update-results.yml",
-    ".github/workflows/pages.yml",
-    "scripts/update_results.py",
-    "data/dashboard.json",
-    "index.html",
-    "app.js",
-    "styles.css"
-  ],
+  "package": "Jack Wix Junior Gold dashboard validated replacement v3",
+  "validated_at": "2026-07-13T19:25:03-05:00",
+  "official_report_as_of": "2026-07-13T18:56:00-05:00",
+  "official_report_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%201_U18Boys.pdf?v=new",
+  "expected_result": {
+    "jack_position": 364,
+    "published_field_size": 689,
+    "jack_games": [132, 190, 163, 221],
+    "jack_total": 706,
+    "jack_average": 176.5,
+    "alabama_bowlers": 10,
+    "valid_reports": [1]
+  },
   "checks": [
-    "Python updater compiles",
+    "Seven parser and partial-round regression tests pass",
+    "Live Bowl.com results page discovery succeeds",
+    "Live Round 1 U18 Boys PDF produces 689 validated standings rows",
+    "Rounds 2 through 4 are correctly classified as unpublished placeholders",
+    "Jack's games, block total, grand total, average, rank, and field size match the official report",
+    "Ten Alabama profiles match validated official standings rows",
     "Dashboard JSON parses",
-    "JavaScript syntax passes node --check",
-    "Required assets and DOM elements are present",
-    "Workflow contains a single schedule block",
-    "Workflow retries safely from the latest main branch"
+    "JavaScript passes node --check",
+    "GitHub Actions workflow YAML parses",
+    "Updater performs atomic JSON writes and conflict-safe push retries"
   ]
 }

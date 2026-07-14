@@ -1,313 +1,421 @@
 #!/usr/bin/env python3
-"""Update Jack Wix's Junior Gold dashboard from official Bowl.com PDFs."""
+"""Refresh the Junior Gold dashboard from official Bowl.com U18 Boys PDFs."""
 from __future__ import annotations
-import io, json, re
+
+import argparse
+import io
+import json
+import math
+import re
+import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
-import requests
+
 import pdfplumber
+import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 
 RESULTS_PAGE = "https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results"
+REPORT_BASE = "https://scores.bowl.com/2026-JG/"
 ATHLETE = "Jack Wix"
-ROUNDS = ["Qualifying Round 1","Qualifying Round 2","Qualifying Round 3","Qualifying Round 4"]
-
-EXPECTED_U18B_SQUADS={1,2,11,12,21,22,31,32}
-
-def parse_field_size(text):
-    """Return the number of unique U18B competitors listed in a report."""
-    usbc_ids=set(re.findall(r"\b\d{2,4}-\d{3,6}\b",text))
-    ranks=[]
-    for line in text.splitlines():
-        match=re.match(r"^\s*(\d{1,4})(?:T)?\s+.+?\b\d{2,4}-\d{3,6}\b",line)
-        if match:
-            ranks.append(int(match.group(1)))
-    candidates=[len(usbc_ids)]
-    if ranks:
-        candidates.append(max(ranks))
-    return max(candidates) if any(candidates) else None
-
-def parse_reported_u18b_squads(text):
-    """Return U18B squad numbers represented in the report."""
-    return {
-        int(value)
-        for value in re.findall(r"\bSquad\s+(\d+)\s+Day\s+1\b",text,re.I)
-    }
-
+ROUNDS = [f"Qualifying Round {number}" for number in range(1, 5)]
+EXPECTED_U18B_SQUADS = {1, 2, 11, 12, 21, 22, 31, 32}
+CENTRAL = ZoneInfo("America/Chicago")
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
 
-REQUEST_HEADERS={
-    "User-Agent":"Mozilla/5.0 (compatible; JackWixJuniorGoldDashboard/1.0)",
-    "Accept":"text/html,application/pdf;q=0.9,*/*;q=0.8"
+REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; JackWixJuniorGoldDashboard/2.0)",
+    "Accept": "text/html,application/pdf;q=0.9,*/*;q=0.8",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
 }
 
-def discover_pdf_links():
-    """Discover official links, while retaining stable URLs if Bowl.com is unavailable."""
-    links={}
-    try:
-        response=requests.get(RESULTS_PAGE,headers=REQUEST_HEADERS,timeout=30)
-        response.raise_for_status()
-        soup=BeautifulSoup(response.text,"html.parser")
-        u18=soup.find(string=re.compile(r"U18 DIVISION",re.I))
-        scope=u18.parent.parent if u18 else soup
-        for anchor in scope.find_all("a",href=True):
-            href=anchor["href"]
-            if "Qualifying_Round" not in href or "U18Boys" not in href:
-                continue
-            match=re.search(r"Round%20?(\d)|Round(\d)",href,re.I)
-            if match:
-                round_number=int(next(value for value in match.groups() if value))
-                links[round_number]=href
-    except requests.RequestException as exc:
-        print(f"Results page discovery failed; using stable report URLs: {exc}")
-
-    for round_number in range(1,5):
-        links.setdefault(
-            round_number,
-            f"https://scores.bowl.com/2026-JG/Qualifying_Round%20{round_number}_U18Boys.pdf?v=new"
-        )
-    return links
-
-def extract_pdf(url):
-    response=requests.get(url,headers=REQUEST_HEADERS,timeout=45)
-    response.raise_for_status()
-    if not response.content.startswith(b"%PDF"):
-        raise ValueError(f"Bowl.com returned non-PDF content for {url}")
-    with pdfplumber.open(io.BytesIO(response.content)) as pdf:
-        return "\n".join(page.extract_text() or "" for page in pdf.pages)
+ROW_RE = re.compile(
+    r"^(?P<rank>\d{1,4})(?P<tied>T)?\s+"
+    r"(?P<name>.+?)\s*"
+    r"(?P<usbc>\d{1,6}-\d{1,6})\s+"
+    r"(?P<hometown>.+?)\s+"
+    r"Squad\s+(?P<squad>\d+)\s+Day\s+(?P<day>\d+)\s+"
+    r"(?P<tail>.+)$",
+    re.I,
+)
 
 
-def parse_source_updated_at(text):
-    """Return the official Bowl.com report 'as of' timestamp in Central Time."""
-    match=re.search(
-        r"Unofficial Results\s*-\s*as of:\s*"
-        r"([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)",
-        text,
-        re.I
+@dataclass(frozen=True)
+class Report:
+    round_number: int
+    url: str
+    text: str
+    updated_at: datetime
+    rows: list[dict]
+
+
+def build_session() -> requests.Session:
+    retry = Retry(
+        total=4,
+        connect=4,
+        read=4,
+        backoff_factor=1.0,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+    )
+    session = requests.Session()
+    session.headers.update(REQUEST_HEADERS)
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
+
+def canonical_report_url(url: str) -> tuple[int, str] | None:
+    """Recognize Bowl.com's encoded or literal-space U18 Boys report links."""
+    absolute = urljoin(RESULTS_PAGE, url.strip())
+    parts = urlsplit(absolute)
+    decoded_path = unquote(parts.path)
+    match = re.search(
+        r"Qualifying_Round\s*(?P<round>[1-4])_U18Boys\.pdf$",
+        decoded_path,
+        re.I,
     )
     if not match:
         return None
-    parsed=datetime.strptime(match.group(1), "%b %d, %Y %I:%M %p")
-    return parsed.replace(tzinfo=ZoneInfo("America/Chicago"))
+    round_number = int(match.group("round"))
+    encoded_path = quote(decoded_path, safe="/-_.~")
+    return round_number, urlunsplit((parts.scheme or "https", parts.netloc, encoded_path, "", ""))
 
-def parse_athlete(text):
-    """Return the four game scores from Jack's standings row.
 
-    The report also includes total and decimal average values after the games.
-    Parsing the last four small numbers mistakenly treats parts of the average
-    as game scores, so only read the first four integers after the hometown.
-    """
-    for line in text.splitlines():
-        if ATHLETE.lower() not in line.lower():
-            continue
-        hometown=re.search(r",\s*AL\s+(?P<tail>.+)$", line, re.I)
-        tail=hometown.group("tail") if hometown else line.split(ATHLETE,1)[-1]
-        values=[int(x) for x in re.findall(r"(?<![.\d])\d{1,3}(?![.\d])", tail)]
-        scores=[n for n in values if 0 <= n <= 300]
-        if len(scores) >= 4:
-            return scores[:4]
-    return []
+def discover_pdf_links(session: requests.Session | None = None) -> dict[int, str]:
+    """Discover the four reports from the results page, with stable fallbacks."""
+    session = session or build_session()
+    links: dict[int, str] = {}
+    try:
+        response = session.get(RESULTS_PAGE, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        for anchor in soup.find_all("a", href=True):
+            parsed = canonical_report_url(anchor["href"])
+            if parsed:
+                round_number, url = parsed
+                links[round_number] = url
+    except requests.RequestException as exc:
+        print(f"Results page discovery failed; using stable report URLs: {exc}")
 
-def parse_alabama_bowlers(text, round_number):
-    """Parse Alabama rows and preserve the four posted scores for this round."""
-    bowlers=[]
-    lines=[" ".join(line.split()) for line in text.splitlines()]
-    for line in lines:
-        if ", AL " not in line and not line.endswith(", AL"):
-            continue
-
-        match=re.match(
-            r"^(?P<rank>\d+)(?P<tied>T)?\s+"
-            r"(?P<name>.+?)\s+"
-            r"(?P<usbc>\d{2,4}-\d+)\s+"
-            r"(?P<city>.+?, AL)\s+"
-            r"(?P<numbers>.+)$",
-            line
+    for round_number in range(1, 5):
+        links.setdefault(
+            round_number,
+            f"{REPORT_BASE}Qualifying_Round%20{round_number}_U18Boys.pdf",
         )
-        if not match:
-            continue
-
-        number_text=match.group("numbers")
-        integers=[int(x) for x in re.findall(r"(?<![.\d])\d{1,4}(?![.\d])",number_text)]
-        game_candidates=[n for n in integers if 0 <= n <= 300]
-        games=game_candidates[:4]
-        totals=[n for n in integers if n > 300]
-        total=totals[-1] if totals else (sum(games) if games else None)
-        if total is None:
-            continue
-
-        games_complete=max(round_number*4, len(games))
-        average=round(total/games_complete,2) if games_complete else None
-
-        bowlers.append({
-            "rank":int(match.group("rank")),
-            "tied":bool(match.group("tied")),
-            "name":match.group("name").strip(),
-            "hometown":match.group("city"),
-            "games_complete":games_complete,
-            "total":total,
-            "average":average,
-            "block":{
-                "round":round_number,
-                "games":games,
-                "total":sum(games) if games else None
-            }
-        })
-    return bowlers
-
-def merge_alabama_bowlers(existing, incoming):
-    """Merge successive round reports into one bowler profile per name."""
-    profiles={b["name"].lower():b for b in existing}
-    for row in incoming:
-        key=row["name"].lower()
-        profile=profiles.get(key,{
-            "name":row["name"],
-            "hometown":row["hometown"],
-            "blocks":[]
-        })
-
-        profile.update({
-            "rank":row["rank"],
-            "tied":row["tied"],
-            "name":row["name"],
-            "hometown":row["hometown"],
-            "games_complete":row["games_complete"],
-            "total":row["total"],
-            "average":row["average"]
-        })
-
-        block=row.get("block")
-        if block:
-            blocks=[b for b in profile.get("blocks",[]) if b.get("round") != block.get("round")]
-            blocks.append(block)
-            profile["blocks"]=sorted(blocks,key=lambda b:b.get("round",0))
-
-        profiles[key]=profile
-
-    return sorted(profiles.values(),key=lambda b:(b.get("rank",99999),b.get("name","")))
+    return links
 
 
-def estimate_cut(text, cut_place=192):
-    # Parse lines beginning with place. Return total for cut place when available.
-    for line in text.splitlines():
-        if re.match(rf"^\s*{cut_place}(?:T)?\s",line):
-            nums=[int(x) for x in re.findall(r"\b\d{3,4}\b",line)]
-            if nums: return nums[-1]
-    return None
+def extract_pdf(url: str, session: requests.Session | None = None) -> str:
+    """Download a report without accepting cached or non-report placeholders."""
+    session = session or build_session()
+    separator = "&" if "?" in url else "?"
+    cache_busted_url = f"{url}{separator}v={int(time.time())}"
+    response = session.get(cache_busted_url, timeout=60)
+    response.raise_for_status()
+    content_type = response.headers.get("content-type", "").lower()
+    if not response.content.startswith(b"%PDF"):
+        raise ValueError(f"Bowl.com returned non-PDF content ({content_type or 'unknown type'})")
+    with pdfplumber.open(io.BytesIO(response.content)) as pdf:
+        text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+    if re.search(r"Results\s+Coming\s+Soon", text, re.I):
+        raise ValueError("report has not been published yet")
+    return text
 
-def main():
-    data=json.loads(DATA.read_text())
-    links=discover_pdf_links()
-    all_games=[]; cut_total=None; alabama=[]
-    latest_source_time=None; latest_source_round=None; latest_source_url=None
-    successful_fetches=0
-    field_size=None; reported_u18b_squads=set()
-    for n in range(1,5):
+
+def parse_source_updated_at(text: str) -> datetime | None:
+    match = re.search(
+        r"Unofficial Results\s*-\s*as of:\s*"
+        r"([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)",
+        text,
+        re.I,
+    )
+    if not match:
+        return None
+    parsed = datetime.strptime(match.group(1), "%b %d, %Y %I:%M %p")
+    return parsed.replace(tzinfo=CENTRAL)
+
+
+def _parse_row(line: str, report_round: int) -> dict | None:
+    """Parse one standings row and validate the four-game block arithmetically."""
+    normalized = " ".join(line.split())
+    match = ROW_RE.match(normalized)
+    if not match or int(match.group("day")) != report_round:
+        return None
+
+    tokens = match.group("tail").split()
+    # Tail layout: [previous total on Day 2+] G1 G2 G3 G4 block grand avg +/-.
+    if len(tokens) < 8:
+        return None
+    try:
+        average = float(tokens[-2])
+        grand_total = int(tokens[-3])
+        block_total = int(tokens[-4])
+        prefix = [int(token) for token in tokens[:-4]]
+    except ValueError:
+        return None
+    if len(prefix) < 4:
+        return None
+    games = prefix[-4:]
+    previous_total = prefix[-5] if len(prefix) >= 5 else 0
+    if any(score < 0 or score > 300 for score in games):
+        return None
+    if sum(games) != block_total:
+        return None
+    if previous_total + block_total != grand_total:
+        return None
+
+    games_complete = report_round * 4
+    if abs(average - (grand_total / games_complete)) > 0.02:
+        return None
+    hometown = re.sub(r"\s+", " ", match.group("hometown")).strip()
+    state_match = re.search(r",\s*([A-Z]{2})$", hometown, re.I)
+    return {
+        "rank": int(match.group("rank")),
+        "tied": bool(match.group("tied")),
+        "name": match.group("name").strip(),
+        "usbc_id": match.group("usbc"),
+        "hometown": hometown,
+        "state": state_match.group(1).upper() if state_match else "",
+        "squad": int(match.group("squad")),
+        "round": report_round,
+        "games": games,
+        "block_total": block_total,
+        "grand_total": grand_total,
+        "average": round(average, 2),
+        "games_complete": games_complete,
+    }
+
+
+def parse_standings(text: str, report_round: int) -> list[dict]:
+    rows = [row for line in text.splitlines() if (row := _parse_row(line, report_round))]
+    rank_counts: dict[int, int] = {}
+    for row in rows:
+        rank_counts[row["rank"]] = rank_counts.get(row["rank"], 0) + 1
+    for row in rows:
+        row["tied"] = row["tied"] or rank_counts[row["rank"]] > 1
+    return rows
+
+
+def parse_reported_u18b_squads(rows: list[dict]) -> set[int]:
+    return {row["squad"] for row in rows if row["round"] == 1}
+
+
+def row_for_athlete(rows: list[dict], athlete: str = ATHLETE) -> dict | None:
+    wanted = athlete.casefold()
+    return next((row for row in rows if row["name"].casefold() == wanted), None)
+
+
+def fetch_reports(session: requests.Session | None = None) -> tuple[list[Report], dict[int, str]]:
+    session = session or build_session()
+    links = discover_pdf_links(session)
+    reports: list[Report] = []
+    for round_number in range(1, 5):
         try:
-            text=extract_pdf(links[n])
-            successful_fetches += 1
-            source_time=parse_source_updated_at(text)
-            parsed_field_size=parse_field_size(text)
-            if parsed_field_size and (field_size is None or parsed_field_size > field_size):
-                field_size=parsed_field_size
-            if n==1:
-                reported_u18b_squads |= parse_reported_u18b_squads(text)
-            if source_time and (latest_source_time is None or source_time > latest_source_time):
-                latest_source_time=source_time
-                latest_source_round=ROUNDS[n-1]
-                latest_source_url=links[n]
-            games=parse_athlete(text)
-            data["blocks"][n-1]["games"]=games
-            data["blocks"][n-1]["total"]=sum(games) if games else None
-            if n==1: cut_total=estimate_cut(text)
-            found_alabama=parse_alabama_bowlers(text,n)
-            if found_alabama: alabama=merge_alabama_bowlers(alabama,found_alabama)
-            all_games.extend(games)
-        except Exception as exc:
-            print(f"Round {n}: {exc}")
-    # Recalculate from all saved blocks, including previously posted rounds that may
-    # be temporarily unavailable during this check. A partial Bowl.com outage must
-    # never reset Jack's dashboard totals to zero.
-    saved_games=[]
-    for block in data.get("blocks",[]):
-        saved_games.extend(block.get("games") or [])
-
-    total=sum(saved_games)
-    count=len(saved_games)
-    current=data["current"]
-    if count:
-        current["total"]=total
-        current["games_complete"]=count
-        current["average"]=round(total/count,2)
-        if cut_total is not None:
-            current["pins_from_cut"]=total-cut_total
-        target=190*16
-        remaining=16-count
-        current["needed_average"]=round((target-total)/remaining,1) if remaining else None
-    if field_size:
-        current["field_size"]=field_size
-        field_is_final=EXPECTED_U18B_SQUADS.issubset(reported_u18b_squads)
-        data["field_size"]={
-            "current_report":field_size,
-            "is_final":field_is_final,
-            "reported_squads":sorted(reported_u18b_squads),
-            "expected_squads":sorted(EXPECTED_U18B_SQUADS),
-            "note":(
-                "Total U18B participants."
-                if field_is_final
-                else "Participants posted in the latest Round 1 report. The count will increase as remaining Day 1 squads are posted."
+            text = extract_pdf(links[round_number], session)
+            updated_at = parse_source_updated_at(text)
+            rows = parse_standings(text, round_number)
+            if updated_at is None or not rows:
+                raise ValueError("PDF does not contain a valid U18 Boys standings table")
+            reports.append(Report(round_number, links[round_number], text, updated_at, rows))
+            print(
+                f"Round {round_number}: {len(rows)} bowlers; "
+                f"official timestamp {updated_at.isoformat()}"
             )
-        }
-    data["cut_projection"]={
-        "status":"placeholder",
-        "official":False,
-        "label":"Placeholder estimate",
-        "title":"There is no official cut yet",
-        "explanation":"The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. The values shown are temporary planning aids and may move substantially as more squads and rounds are posted.",
-        "gap_basis":"Temporary comparison to 192nd place in the Round 1 report",
-        "needed_average_basis":"Temporary calculation using a fixed 190.0 final-average target",
-        "warning":"Do not present these values as the official advancement cut."
+        except Exception as exc:
+            print(f"Round {round_number}: {exc}")
+    return reports, links
+
+
+def build_alabama_profiles(reports: list[Report]) -> list[dict]:
+    blocks_by_id: dict[str, list[dict]] = {}
+    newest_by_id: dict[str, dict] = {}
+    for report in sorted(reports, key=lambda item: (item.round_number, item.updated_at)):
+        for row in report.rows:
+            if row["state"] != "AL":
+                continue
+            newest_by_id[row["usbc_id"]] = row
+            blocks_by_id.setdefault(row["usbc_id"], []).append(
+                {
+                    "round": report.round_number,
+                    "games": row["games"],
+                    "total": row["block_total"],
+                }
+            )
+
+    profiles = []
+    for usbc_id, row in newest_by_id.items():
+        profiles.append(
+            {
+                "rank": row["rank"],
+                "tied": row["tied"],
+                "name": row["name"],
+                "hometown": row["hometown"],
+                "games_complete": row["games_complete"],
+                "total": row["grand_total"],
+                "average": row["average"],
+                "blocks": sorted(blocks_by_id.get(usbc_id, []), key=lambda item: item["round"]),
+            }
+        )
+    return sorted(profiles, key=lambda row: (row["rank"], row["name"]))
+
+
+def provisional_cut(latest: Report) -> dict | None:
+    """Return a clearly labeled current-pace comparison, never an official cut."""
+    field_size = len({row["usbc_id"] for row in latest.rows})
+    if not field_size:
+        return None
+    advancing_place = math.ceil(field_size / 7)
+    ordered = sorted(latest.rows, key=lambda row: (-row["grand_total"], row["name"]))
+    cut_row = ordered[min(advancing_place - 1, len(ordered) - 1)]
+    pace_average = cut_row["grand_total"] / cut_row["games_complete"]
+    return {
+        "advancing_place": advancing_place,
+        "current_score": cut_row["grand_total"],
+        "projected_final_total": round(pace_average * 16),
+        "games_basis": cut_row["games_complete"],
     }
-    if alabama:
-        data["alabama_bowlers"]=alabama
-        jack=next((b for b in alabama if b["name"].lower()=="jack wix"),None)
+
+
+def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) -> dict:
+    previous_source = data.get("source_status", {})
+    if not reports:
+        data["source_status"] = {
+            **previous_source,
+            "status": "unavailable",
+            "last_checked_at": checked_at.isoformat(),
+        }
+        data["updated_at"] = checked_at.isoformat()
+        return data
+
+    latest = max(reports, key=lambda report: (report.round_number, report.updated_at))
+    jack_reports = [report for report in reports if row_for_athlete(report.rows)]
+    if not jack_reports:
+        raise RuntimeError(f"{ATHLETE} was not found in any valid report")
+    jack_report = max(jack_reports, key=lambda report: (report.round_number, report.updated_at))
+    jack_latest = row_for_athlete(jack_report.rows)
+
+    for report in reports:
+        jack = row_for_athlete(report.rows)
         if jack:
-            current["position"]=jack["rank"]
-    checked_at=datetime.now(ZoneInfo("America/Chicago"))
-    alabama_complete_after=datetime(2026,7,14,0,0,tzinfo=ZoneInfo("America/Chicago"))
-    alabama_is_complete=checked_at >= alabama_complete_after
-    data["alabama_status"]={
-        "status":"complete" if alabama_is_complete else "partial",
-        "complete_after":alabama_complete_after.isoformat(),
-        "partial_note":"Additional Alabama U18 Boys are scheduled to bowl later today. This list will expand as Bowl.com posts their scores and will be complete after today's squads.",
-        "complete_note":"The Alabama U18 Boys list is complete for the field and reflects the latest Bowl.com report."
+            block = data["blocks"][report.round_number - 1]
+            block["games"] = jack["games"]
+            block["total"] = jack["block_total"]
+
+    # A newly published round can initially contain only early squads. Never let
+    # that partial report shrink the published Day 1 participant count.
+    field_size = max(len({row["usbc_id"] for row in report.rows}) for report in reports)
+    current = data["current"]
+    current.update(
+        {
+            "position": jack_latest["rank"],
+            "total": jack_latest["grand_total"],
+            "average": jack_latest["average"],
+            "games_complete": jack_latest["games_complete"],
+            "field_size": field_size,
+        }
+    )
+
+    round_one = next((report for report in reports if report.round_number == 1), None)
+    reported_squads = parse_reported_u18b_squads(round_one.rows) if round_one else set()
+    field_is_final = EXPECTED_U18B_SQUADS.issubset(reported_squads)
+    data["field_size"] = {
+        "current_report": field_size,
+        "is_final": field_is_final,
+        "reported_squads": sorted(reported_squads),
+        "expected_squads": sorted(EXPECTED_U18B_SQUADS),
+        "note": (
+            "Total U18B participants."
+            if field_is_final
+            else "Participants currently published in the latest official U18 Boys report. The count can increase as remaining Day 1 squads are posted."
+        ),
     }
-    previous_source=data.get("source_status", {})
-    if latest_source_time:
-        age_minutes=max(0, int((checked_at-latest_source_time).total_seconds()/60))
-        # During active competition, flag a report older than three hours as delayed.
-        source_state="current" if age_minutes <= 180 else "delayed"
-        data["source_status"]={
-            "status":source_state,
-            "last_updated_at":latest_source_time.isoformat(),
-            "last_checked_at":checked_at.isoformat(),
-            "report":latest_source_round,
-            "source_url":latest_source_url,
-            "age_minutes":age_minutes
-        }
-    elif successful_fetches:
-        data["source_status"]={
-            **previous_source,
-            "status":"unknown",
-            "last_checked_at":checked_at.isoformat()
-        }
-    else:
-        data["source_status"]={
-            **previous_source,
-            "status":"unavailable",
-            "last_checked_at":checked_at.isoformat()
-        }
-    data["updated_at"]=checked_at.isoformat()
-    DATA.write_text(json.dumps(data,indent=2)+"\n")
-if __name__=="__main__": main()
+
+    # Compare like with like if a newer round is live before Jack bowls it.
+    cut = provisional_cut(jack_report)
+    remaining = max(0, 16 - jack_latest["games_complete"])
+    if cut:
+        current["pins_from_cut"] = jack_latest["grand_total"] - cut["current_score"]
+        current["needed_average"] = (
+            round((cut["projected_final_total"] - jack_latest["grand_total"]) / remaining, 1)
+            if remaining
+            else None
+        )
+    data["cut_projection"] = {
+        "status": "placeholder",
+        "official": False,
+        "label": "Current-pace estimate",
+        "title": "There is no official cut yet",
+        "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. These values compare Jack with the current report at the provisional 1-in-7 advancing position and project that pace over 16 games.",
+        "gap_basis": (
+            f"Temporary comparison to place {cut['advancing_place']} in the latest {jack_report.round_number * 4}-game report containing Jack"
+            if cut
+            else "Temporary comparison unavailable"
+        ),
+        "needed_average_basis": (
+            f"Temporary 16-game pace projection of {cut['projected_final_total']} pins"
+            if cut
+            else "Temporary projection unavailable"
+        ),
+        "warning": "This is a planning estimate, not the official advancement cut.",
+        **(cut or {}),
+    }
+
+    data["alabama_bowlers"] = build_alabama_profiles(reports)
+    data["alabama_status"] = {
+        "status": "complete" if field_is_final else "partial",
+        "complete_after": "2026-07-14T00:00:00-05:00",
+        "partial_note": "Additional Alabama U18 Boys may appear as Bowl.com posts the remaining Day 1 squads. The list is derived from the latest official report.",
+        "complete_note": "All expected Day 1 U18 Boys squads are represented; this Alabama list reflects the latest official report.",
+    }
+
+    age_minutes = max(0, int((checked_at - latest.updated_at).total_seconds() / 60))
+    data["source_status"] = {
+        "status": "current" if age_minutes <= 180 else "delayed",
+        "last_updated_at": latest.updated_at.isoformat(),
+        "last_checked_at": checked_at.isoformat(),
+        "report": ROUNDS[latest.round_number - 1],
+        "source_url": f"{latest.url}?v=new",
+        "age_minutes": age_minutes,
+        "valid_reports": [report.round_number for report in reports],
+    }
+    data["updated_at"] = checked_at.isoformat()
+    return data
+
+
+def write_json_atomic(path: Path, data: dict) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    json.loads(temporary.read_text(encoding="utf-8"))
+    temporary.replace(path)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=Path, default=DATA, help="dashboard JSON path")
+    args = parser.parse_args()
+
+    data = json.loads(args.data.read_text(encoding="utf-8"))
+    checked_at = datetime.now(CENTRAL)
+    reports, _ = fetch_reports()
+    update_dashboard(data, reports, checked_at)
+    write_json_atomic(args.data, data)
+
+    status = data.get("source_status", {}).get("status")
+    current = data.get("current", {})
+    print(
+        f"Dashboard status={status}; Jack rank={current.get('position')}; "
+        f"games={current.get('games_complete')}; total={current.get('total')}; "
+        f"field={current.get('field_size')}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

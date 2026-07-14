@@ -10,7 +10,7 @@ A mobile-friendly GitHub Pages dashboard for Jack Wix's U18 Boys results.
 4. Open **Actions** and run `Update Junior Gold dashboard` once.
 5. Share the Pages URL shown in the `Deploy GitHub Pages` workflow.
 
-The updater runs every 30 minutes. GitHub may delay scheduled workflows during high load.
+The updater uses the tournament-specific schedule documented below. GitHub may delay scheduled workflows during high load.
 
 ## Data behavior
 
@@ -115,3 +115,27 @@ The GitHub Actions updater uses a date-specific tournament schedule in Central T
 - The workflow can still be run manually from the Actions tab at any time.
 
 GitHub cron expressions use UTC, so the workflow file already includes the correct five-hour conversion for Minnesota daylight time.
+
+## Updater repair: validated parser v3
+
+The previous parser read the numbers in `Squad 01 Day 1` as game scores. That produced impossible dashboard data such as `1, 1, 132, 190` and a 324 total for Jack. It also affected Alabama bowlers.
+
+The repaired collector:
+
+- Recognizes both literal-space and URL-encoded links from the Bowl.com results page.
+- Adds a cache-busting query value whenever it downloads a PDF.
+- Rejects the valid-PDF `Results Coming Soon` placeholders for unpublished rounds.
+- Parses standings rows relative to `Squad NN Day N`, then validates game, block, grand-total, and average arithmetic.
+- Handles Bowl.com exceptions such as a missing state and a USBC ID joined to a bowler name.
+- Uses the newest valid qualifying report for rank, total, average, participant count, Alabama standings, and source timestamp.
+- Preserves existing dashboard results if no valid report can be fetched.
+- Includes parser regression tests that run before every automated refresh.
+- Validates the generated dashboard before committing it.
+- Retries a push from the newest `main` branch if another commit wins the race.
+
+Run locally with:
+
+```bash
+python -m unittest discover -s tests -v
+python scripts/update_results.py
+```

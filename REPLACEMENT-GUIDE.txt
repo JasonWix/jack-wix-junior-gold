@@ -1,38 +1,50 @@
-JACK WIX JUNIOR GOLD DASHBOARD — COMPLETE REPLACEMENT
+JACK WIX JUNIOR GOLD DASHBOARD — VALIDATED REPLACEMENT V3
 
-This package contains the complete repository, including the hidden .github folder.
+This ZIP contains the complete repository except for Git history. It includes
+the hidden .github workflows and the new parser regression tests.
 
-SAFE REPLACEMENT STEPS
+SAFE REPLACEMENT STEPS (GITHUB DESKTOP)
 
-1. Open the existing repository in GitHub Desktop.
-2. Select Repository > Show in Finder.
-3. Press Command + Shift + . to show hidden files.
-4. DO NOT delete the existing .git folder.
-5. Delete these existing repository items:
-   .github
-   assets
-   data
-   scripts
-   .gitignore
-   .nojekyll
-   README.md
-   app.js
-   index.html
-   requirements.txt
-   styles.css
-6. Copy every item from this replacement folder into the existing repository folder.
-7. Return to GitHub Desktop.
-8. Commit with:
-   Replace dashboard with validated complete build
+1. Download and unzip the replacement package.
+2. Open jack-wix-junior-gold in GitHub Desktop.
+3. Select Repository > Show in Finder.
+4. Press Command + Shift + . so the hidden .github and .git folders are visible.
+5. DO NOT delete or replace the existing .git folder.
+6. Copy every file and folder from the unzipped replacement into the local
+   repository folder. Choose Replace or Merge when macOS asks.
+7. Return to GitHub Desktop and review the changed files. The replacement must
+   include scripts/update_results.py, tests/test_update_results.py,
+   data/dashboard.json, and .github/workflows/update-results.yml.
+8. Commit with this summary:
+   Fix Bowl.com discovery and results parsing
 9. Click Push origin.
-10. In GitHub, open Actions > Update Junior Gold dashboard > Run workflow.
+10. On GitHub, open Actions > Update Junior Gold dashboard > Run workflow.
+11. Wait for a green check, then open the Pages site and hard-refresh with
+    Command + Shift + R.
 
-The replacement fixes:
-- GitHub push conflicts caused by concurrent or manual commits
-- Duplicate workflow schedules
-- Partial Bowl.com failures resetting data
-- Results-page discovery failures
-- Responsive layout and banner presentation
-- Clickable Alabama bowler profiles
-- U18B field-size display
-- GitHub Pages deployment configuration
+EXPECTED FIRST VALID RESULT (OFFICIAL REPORT AS OF JULY 13, 6:56 PM CENTRAL)
+
+- Jack Wix: rank 364 of 689 currently published participants
+- Scores: 132, 190, 163, 221
+- Total: 706
+- Average: 176.50
+- Alabama bowlers currently published: 10
+
+The participant and Alabama counts can grow when the two remaining Day 1 U18
+Boys squads are posted. Rounds 2–4 currently contain Bowl.com's "Results Coming
+Soon" placeholder and are intentionally ignored until real standings appear.
+
+WHAT WAS FIXED
+
+- The old parser treated "Squad 01 Day 1" as Jack's first two games.
+- Official result-page links contain literal spaces and trailing question marks;
+  discovery now normalizes both those links and URL-encoded variants.
+- PDF downloads are cache-busted and retried.
+- Unpublished-round placeholder PDFs are rejected.
+- Every parsed row must pass score/block/grand-total/average checks.
+- The complete current report drives rank, field size, and Alabama standings.
+- Unit tests and generated-data assertions run before GitHub pushes.
+- Concurrent or manual changes to main trigger a clean retry instead of a
+  non-fast-forward failure.
+
+NO DIRECT REPOSITORY WRITE WAS PERFORMED WHILE CREATING THIS PACKAGE.

@@ -13,9 +13,9 @@ async function load(){
     setText("position", `#${d.current.position} of ${fieldSize}`);
     setText(
       "field-size-note",
-      fieldFinal
+      d.field_size?.note || (fieldFinal
         ? "Total U18B participants"
-        : "Participants posted in the latest report; final field updates after remaining Day 1 squads"
+        : "Participants posted in the latest report; final field updates after remaining Day 1 squads")
     );
   }else{
     setText("position", d.current.position ? `#${d.current.position}` : "—");
@@ -178,10 +178,10 @@ function renderAlabamaStatus(status){
   const note=document.getElementById("alabama-status-note");
   if(!pill || !note) return;
 
-  const completeAfter=status.complete_after ? new Date(status.complete_after).getTime() : null;
-  const isComplete=status.status==="complete" || (completeAfter && Date.now() >= completeAfter);
+  // Trust report coverage, not the wall clock. Bowl.com may post a squad late.
+  const isComplete=status.status==="complete";
 
-  pill.textContent=isComplete ? "Complete after today" : "Partial today";
+  pill.textContent=isComplete ? "Day 1 field complete" : "Partial Day 1 field";
   pill.className=`pill ${isComplete ? "alabama-complete" : "alabama-partial"}`;
   note.textContent=isComplete
     ? (status.complete_note || "The Alabama bowler list is complete and reflects the latest Bowl.com report.")
