@@ -77,17 +77,17 @@ jobs:
 
             python scripts/update_results.py
 
-            python - <<'PY'
-            import json
-            data = json.load(open("data/dashboard.json", encoding="utf-8"))
-            current = data["current"]
-            assert current["games_complete"] in {4, 8, 12, 16}
-            assert 0 < current["average"] <= 300
-            assert abs(current["total"] - current["average"] * current["games_complete"]) <= 0.1
-            assert current["field_size"] >= current["position"]
-            assert data["source_status"]["status"] in {"current", "delayed"}
-            print("Dashboard validation passed:", current)
-            PY
+          python - <<'PY'
+          import json
+          data = json.load(open("data/dashboard.json", encoding="utf-8"))
+          current = data["current"]
+          assert current["games_complete"] in {4, 8, 12, 16}
+          assert 0 < current["average"] <= 300
+          assert abs(current["total"] - current["average"] * current["games_complete"]) <= 0.1
+          assert current["field_size"] >= current["position"]
+          assert data["source_status"]["status"] in {"current", "delayed"}
+          print("Dashboard validation passed:", current)
+          PY
 
             if git diff --quiet -- data/dashboard.json; then
               echo "No dashboard changes detected."
