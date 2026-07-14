@@ -17,8 +17,10 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Pulls the official 2026 Junior Gold U18 Boys PDFs from Bowl.com.
 - Searches for `Jack Wix`.
 - Updates game scores, totals, average and target pace.
+- Preserves a bounded history of meaningful official result changes for progress comparisons.
 - The page automatically counts down to Jack's next Squad 1 qualifying block.
 - Includes an Alabama U18 Boys leaderboard with rank, hometown, games, total, average, and comparison to Jack.
+- Stores visitor-specific section choices, last-visit comparisons, and favorite Alabama bowlers only in that visitor's browser.
 - `data/dashboard.json` contains a valid starting snapshot and can be edited manually if a PDF layout changes.
 
 ## Important
@@ -85,6 +87,17 @@ The dashboard is ordered for family viewing:
 9. Dashboard explanation
 
 The header, statistics, schedule, Alabama leaderboard, and equipment cards now reflow for tablet and phone screens. On smaller phones, the Alabama table becomes readable stacked cards instead of requiring horizontal scrolling.
+
+## Family dashboard features
+
+- Expand All and Collapse All controls, plus remembered state for every section.
+- A “Since your last visit” summary when official results change.
+- A block-level average-versus-estimated-cut chart and position history.
+- High game, low game, latest block, best block, and block-trend highlights.
+- Open in Maps, Add to Calendar, and BowlTV actions for the next qualifying block when applicable.
+- A qualifying-to-match-play tournament path tracker that does not imply advancement before it is official.
+- One-tap family sharing with a copy fallback.
+- Browser-saved favorite Alabama bowlers and a compact comparison view.
 
 
 ## Latest dashboard update

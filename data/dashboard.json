@@ -41,22 +41,80 @@
     {
       "title": "Qualifying Round 1",
       "start": "2026-07-13T07:00:00-05:00",
-      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": true,
+        "url": "https://www.bowltv.com/",
+        "label": "Watch on BowlTV"
+      }
     },
     {
       "title": "Qualifying Round 2",
       "start": "2026-07-14T20:30:00-05:00",
-      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": false
+      }
     },
     {
       "title": "Qualifying Round 3",
       "start": "2026-07-15T16:00:00-05:00",
-      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431"
+      "location": "AMF Southtown Lanes \u00b7 7941 Southtown Center, Bloomington, MN 55431",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": true,
+        "url": "https://www.bowltv.com/",
+        "label": "Watch on BowlTV"
+      }
     },
     {
       "title": "Qualifying Round 4",
       "start": "2026-07-16T11:30:00-05:00",
-      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443"
+      "location": "Lucky Strike Brooklyn Park \u00b7 7545 Brooklyn Blvd., Brooklyn Park, MN 55443",
+      "duration_minutes": 180,
+      "livestream": {
+        "available": false
+      }
+    }
+  ],
+  "tournament_path": [
+    {
+      "id": "qualifying",
+      "title": "Qualifying",
+      "detail": "Four blocks \u00b7 16 games"
+    },
+    {
+      "id": "advancers",
+      "title": "Advancers Round",
+      "detail": "Five games after the first cut"
+    },
+    {
+      "id": "final-advancers",
+      "title": "Final Advancers",
+      "detail": "Five additional games after the second cut"
+    },
+    {
+      "id": "match-play",
+      "title": "Match Play",
+      "detail": "Top 16 bowlers"
+    }
+  ],
+  "history": [
+    {
+      "observed_at": "2026-07-13T20:56:30.645270-05:00",
+      "source_updated_at": "2026-07-13T18:56:00-05:00",
+      "report": "Qualifying Round 1",
+      "games_complete": 4,
+      "position": 364,
+      "field_size": 689,
+      "total": 706,
+      "average": 176.5,
+      "pins_from_cut": -87,
+      "needed_average": 205.5,
+      "projected_cut_total": 3172,
+      "cut_pace_average": 198.25
     }
   ],
   "alabama_bowlers": [
@@ -273,6 +331,7 @@
   ],
   "site": {
     "built_by": "Jason Wix",
+    "url": "https://jasonwix.github.io/jack-wix-junior-gold/",
     "branding": {
       "logo": "assets/junior-gold-2026-logo.png",
       "colors": {

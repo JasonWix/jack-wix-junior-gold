@@ -1,14 +1,36 @@
 let dashboardData = null;
 
 const SECTION_STATE_KEY = "jack-wix-dashboard:section-state";
+const LAST_VISIT_KEY = "jack-wix-dashboard:last-visit";
+const FAVORITES_KEY = "jack-wix-dashboard:favorite-alabama-bowlers";
+let favoriteBowlers = loadStoredArray(FAVORITES_KEY);
+
+function readStoredJson(key,fallback){
+  try{
+    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+  }catch(error){
+    console.warn(`Unable to read ${key}`,error);
+    return fallback;
+  }
+}
+
+function writeStoredJson(key,value){
+  try{
+    localStorage.setItem(key,JSON.stringify(value));
+    return true;
+  }catch(error){
+    console.warn(`Unable to save ${key}`,error);
+    return false;
+  }
+}
+
+function loadStoredArray(key){
+  const value=readStoredJson(key,[]);
+  return Array.isArray(value) ? value : [];
+}
 
 function setupCollapsibleSections(){
-  let saved={};
-  try{
-    saved=JSON.parse(localStorage.getItem(SECTION_STATE_KEY) || "{}");
-  }catch(error){
-    console.warn("Unable to restore section state",error);
-  }
+  const saved=readStoredJson(SECTION_STATE_KEY,{});
 
   document.querySelectorAll("details.dashboard-section").forEach(section=>{
     if(saved[section.id] === false) section.open=false;
@@ -16,13 +38,17 @@ function setupCollapsibleSections(){
 
     section.addEventListener("toggle",()=>{
       saved[section.id]=section.open;
-      try{
-        localStorage.setItem(SECTION_STATE_KEY,JSON.stringify(saved));
-      }catch(error){
-        console.warn("Unable to save section state",error);
-      }
+      writeStoredJson(SECTION_STATE_KEY,saved);
     });
   });
+}
+
+function setupSectionControls(){
+  const sections=[...document.querySelectorAll("details.dashboard-section")];
+  const expand=document.getElementById("expand-all");
+  const collapse=document.getElementById("collapse-all");
+  expand?.addEventListener("click",()=>sections.forEach(section=>{section.open=true;}));
+  collapse?.addEventListener("click",()=>sections.forEach(section=>{section.open=false;}));
 }
 
 const fmt = new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago",timeZoneName:"short"});
@@ -52,13 +78,18 @@ async function load(){
   renderCutProjection(d.current || {}, d.cut_projection || {});
   setText("updated", `Dashboard refreshed ${fmt.format(new Date(d.updated_at))}`);
   renderSourceStatus(d.source_status || {}, d.updated_at);
+  renderSinceLastVisit(d);
 
   renderBlocks(d.blocks);
+  renderProgress(d.history || [], d.current || {}, d.cut_projection || {});
+  renderPerformanceHighlights(d.blocks || []);
   renderEquipment(d.equipment || {});
   renderAlabamaStatus(d.alabama_status || {});
   renderAlabama(d.alabama_bowlers || [], d.current.total);
   renderLastQualifier(d.schedule, d.blocks);
   renderSchedule(d.schedule);
+  renderNextActions(d.schedule);
+  renderTournamentPath(d.tournament_path || [], d.current || {});
   startCountdown(d.schedule);
 }
 
@@ -125,6 +156,169 @@ function escapeHtml(value){
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
+}
+
+function currentVisitSnapshot(data){
+  return {
+    source_updated_at:data.source_status?.last_updated_at || data.updated_at || null,
+    position:data.current?.position ?? null,
+    field_size:data.field_size?.current_report ?? data.current?.field_size ?? null,
+    total:data.current?.total ?? null,
+    average:data.current?.average ?? null,
+    games_complete:data.current?.games_complete ?? null,
+    pins_from_cut:data.current?.pins_from_cut ?? null
+  };
+}
+
+function renderSinceLastVisit(data){
+  const previous=readStoredJson(LAST_VISIT_KEY,null);
+  const current=currentVisitSnapshot(data);
+  const changes=[];
+
+  if(!previous || typeof previous!=="object"){
+    setText("visit-title","Your visit baseline is set");
+    setText("visit-summary","When official results change, this section will summarize the new games and standings movement on your next visit.");
+    changes.push(`Current position: #${current.position ?? "—"}${current.field_size ? ` of ${current.field_size}` : ""}`);
+  }else{
+    const sameResult=previous.source_updated_at===current.source_updated_at
+      && previous.position===current.position
+      && previous.total===current.total
+      && previous.games_complete===current.games_complete;
+
+    if(sameResult){
+      setText("visit-title","No new official results since your last visit");
+      setText("visit-summary","The dashboard has checked Bowl.com, but Jack's latest posted scores and position have not changed.");
+      changes.push(`Still #${current.position ?? "—"}${current.field_size ? ` of ${current.field_size}` : ""}`);
+    }else{
+      setText("visit-title","New since your last visit");
+      setText("visit-summary","Here is what changed in the latest official Bowl.com results.");
+
+      const gameChange=Number(current.games_complete)-Number(previous.games_complete);
+      const pinChange=Number(current.total)-Number(previous.total);
+      const positionChange=Number(previous.position)-Number(current.position);
+      const averageChange=Number(current.average)-Number(previous.average);
+      const cutChange=Number(current.pins_from_cut)-Number(previous.pins_from_cut);
+      const fieldChange=Number(current.field_size)-Number(previous.field_size);
+
+      if(Number.isFinite(gameChange) && gameChange) changes.push(`${gameChange>0?"+":""}${gameChange} games posted`);
+      if(Number.isFinite(pinChange) && pinChange) changes.push(`${pinChange>0?"+":""}${pinChange} pins`);
+      if(Number.isFinite(positionChange)){
+        changes.push(positionChange>0 ? `Up ${positionChange} place${positionChange===1?"":"s"}` : positionChange<0 ? `Down ${Math.abs(positionChange)} place${positionChange===-1?"":"s"}` : "Position unchanged");
+      }
+      if(Number.isFinite(averageChange) && Math.abs(averageChange)>=0.01) changes.push(`${averageChange>0?"+":""}${averageChange.toFixed(2)} average`);
+      if(Number.isFinite(cutChange) && cutChange) changes.push(`Estimated cut gap ${cutChange>0?"improved":"moved back"} ${Math.abs(cutChange)} pins`);
+      if(Number.isFinite(fieldChange) && fieldChange) changes.push(`${fieldChange>0?"+":""}${fieldChange} published participants`);
+      if(!changes.length) changes.push("The official report timestamp changed; Jack's headline totals stayed the same.");
+    }
+  }
+
+  document.getElementById("visit-changes").innerHTML=changes.map(change=>`<span>${escapeHtml(change)}</span>`).join("");
+  writeStoredJson(LAST_VISIT_KEY,current);
+}
+
+function latestBlockSnapshots(history,current,projection){
+  const byGames=new Map();
+  (Array.isArray(history) ? history : []).forEach(snapshot=>{
+    if(Number(snapshot.games_complete)>0) byGames.set(Number(snapshot.games_complete),snapshot);
+  });
+  if(!byGames.size && Number(current.games_complete)>0){
+    byGames.set(Number(current.games_complete),{
+      games_complete:Number(current.games_complete),
+      average:Number(current.average),
+      position:current.position,
+      field_size:current.field_size,
+      pins_from_cut:current.pins_from_cut,
+      projected_cut_total:projection.projected_final_total
+    });
+  }
+  return [...byGames.values()].sort((a,b)=>Number(a.games_complete)-Number(b.games_complete));
+}
+
+function renderProgress(history,current,projection){
+  const chart=document.getElementById("progress-chart");
+  const positionHistory=document.getElementById("position-history");
+  if(!chart || !positionHistory) return;
+
+  const snapshots=latestBlockSnapshots(history,current,projection).map(snapshot=>({
+    ...snapshot,
+    average:Number(snapshot.average),
+    cut_pace_average:snapshot.cut_pace_average!=null
+      ? Number(snapshot.cut_pace_average)
+      : snapshot.projected_cut_total!=null ? Number(snapshot.projected_cut_total)/16 : null
+  }));
+
+  if(!snapshots.length){
+    chart.innerHTML='<p class="muted">The progress comparison will appear when Jack\'s first scores are posted.</p>';
+    positionHistory.innerHTML="";
+    return;
+  }
+
+  const values=snapshots.flatMap(snapshot=>[snapshot.average,snapshot.cut_pace_average]).filter(Number.isFinite);
+  const chartMax=Math.min(300,Math.max(200,Math.ceil(Math.max(...values,200)/25)*25));
+  const chartLabel=snapshots.map(snapshot=>{
+    const cut=Number.isFinite(snapshot.cut_pace_average) ? snapshot.cut_pace_average.toFixed(2) : "unavailable";
+    return `After ${snapshot.games_complete} games, Jack averaged ${snapshot.average.toFixed(2)} and the estimated cut pace was ${cut}`;
+  }).join(". ");
+
+  chart.setAttribute("role","img");
+  chart.setAttribute("aria-label",chartLabel);
+  chart.innerHTML=`
+    <div class="chart-scale" aria-hidden="true"><span>${chartMax}</span><span>${Math.round(chartMax/2)}</span><span>0</span></div>
+    <div class="chart-groups" style="--chart-max:${chartMax}">
+      ${snapshots.map(snapshot=>{
+        const jackHeight=Math.max(0,Math.min(100,(snapshot.average/chartMax)*100));
+        const cutHeight=Number.isFinite(snapshot.cut_pace_average) ? Math.max(0,Math.min(100,(snapshot.cut_pace_average/chartMax)*100)) : 0;
+        return `<div class="chart-group">
+          <div class="chart-bars" aria-hidden="true">
+            <div class="chart-bar jack-bar" style="--bar-height:${jackHeight}%"><span>${snapshot.average.toFixed(2)}</span></div>
+            <div class="chart-bar cut-bar" style="--bar-height:${cutHeight}%"><span>${Number.isFinite(snapshot.cut_pace_average)?snapshot.cut_pace_average.toFixed(2):"—"}</span></div>
+          </div>
+          <strong>${snapshot.games_complete} games</strong>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  positionHistory.innerHTML=snapshots.map((snapshot,index)=>{
+    const previous=index ? snapshots[index-1] : null;
+    const movement=previous && Number.isFinite(Number(previous.position)) && Number.isFinite(Number(snapshot.position))
+      ? Number(previous.position)-Number(snapshot.position)
+      : null;
+    const movementText=movement==null ? "Starting position" : movement>0 ? `Up ${movement}` : movement<0 ? `Down ${Math.abs(movement)}` : "No rank change";
+    const gap=snapshot.pins_from_cut==null ? "Gap pending" : `${Number(snapshot.pins_from_cut)>0?"+":""}${snapshot.pins_from_cut} vs. pace`;
+    return `<article>
+      <span>After ${snapshot.games_complete} games</span>
+      <strong>#${snapshot.position ?? "—"}${snapshot.field_size ? ` of ${snapshot.field_size}` : ""}</strong>
+      <small>${escapeHtml(movementText)} · ${escapeHtml(gap)}</small>
+    </article>`;
+  }).join("");
+}
+
+function renderPerformanceHighlights(blocks){
+  const container=document.getElementById("performance-highlights");
+  if(!container) return;
+  const completed=(Array.isArray(blocks)?blocks:[]).filter(block=>Array.isArray(block.games) && block.games.length);
+  const games=completed.flatMap(block=>block.games.map(Number)).filter(Number.isFinite);
+  if(!games.length){
+    container.innerHTML='<p class="muted">Highlights will appear when scores are posted.</p>';
+    return;
+  }
+
+  const blockAverages=completed.map(block=>({
+    round:block.round,
+    average:Number(block.total ?? block.games.reduce((sum,score)=>sum+Number(score),0))/block.games.length
+  }));
+  const latest=blockAverages[blockAverages.length-1];
+  const previous=blockAverages.length>1 ? blockAverages[blockAverages.length-2] : null;
+  const best=blockAverages.reduce((top,item)=>item.average>top.average?item:top,blockAverages[0]);
+  const trend=previous ? latest.average-previous.average : null;
+  const cards=[
+    ["High game",Math.max(...games),`Across ${games.length} posted games`],
+    ["Low game",Math.min(...games),"Useful consistency floor"],
+    ["Latest block",latest.average.toFixed(2),`Round ${latest.round} average`],
+    ["Best block",best.average.toFixed(2),`Round ${best.round} average`],
+    ["Block trend",trend==null?"Baseline":`${trend>0?"+":""}${trend.toFixed(2)}`,trend==null?"Compare after Round 2":`${trend>=0?"Improvement":"Change"} from prior block`]
+  ];
+  container.innerHTML=cards.map(([label,value,note])=>`<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`).join("");
 }
 
 function renderEquipment(equipment){
@@ -217,16 +411,21 @@ function renderAlabama(bowlers,jackTotal){
   const body=document.getElementById("alabama-bowlers");
   if(!body) return;
   if(!bowlers.length){
-    body.innerHTML='<tr><td colspan="7" class="muted">No Alabama bowlers found in the latest report.</td></tr>';
+    body.innerHTML='<tr><td colspan="8" class="muted">No Alabama bowlers found in the latest report.</td></tr>';
+    renderFavoriteBowlers([],jackTotal);
     return;
   }
 
   body.innerHTML=bowlers.map((b,index)=>{
     const isJack=b.name.toLowerCase()==="jack wix";
+    const isFavorite=favoriteBowlers.includes(b.name);
     const diff=isJack ? 0 : Number(b.total)-Number(jackTotal);
     const diffText=diff===0 ? "Jack" : `${diff>0?"+":""}${diff}`;
 
     return `<tr class="${isJack?"jack":""}">
+      <td class="favorite-cell" data-label="Favorite">
+        <button class="favorite-button" type="button" data-favorite-index="${index}" aria-pressed="${isFavorite}" aria-label="${isFavorite?"Remove":"Add"} ${escapeHtml(b.name)} ${isFavorite?"from":"to"} favorites">${isFavorite?"★":"☆"}</button>
+      </td>
       <td class="rank" data-label="Rank">#${b.rank}${b.tied?"T":""}</td>
       <td class="bowler" data-label="Bowler">
         <button class="bowler-name-button" type="button" data-bowler-index="${index}" aria-label="View tournament details for ${escapeHtml(b.name)}">
@@ -246,6 +445,46 @@ function renderAlabama(bowlers,jackTotal){
       const bowler=bowlers[Number(button.dataset.bowlerIndex)];
       openBowlerDialog(bowler,jackTotal);
     });
+  });
+
+  body.querySelectorAll(".favorite-button").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const bowler=bowlers[Number(button.dataset.favoriteIndex)];
+      const favorites=new Set(favoriteBowlers);
+      if(favorites.has(bowler.name)) favorites.delete(bowler.name);
+      else favorites.add(bowler.name);
+      favoriteBowlers=[...favorites];
+      writeStoredJson(FAVORITES_KEY,favoriteBowlers);
+      renderAlabama(bowlers,jackTotal);
+    });
+  });
+
+  renderFavoriteBowlers(bowlers,jackTotal);
+}
+
+function renderFavoriteBowlers(bowlers,jackTotal){
+  const container=document.getElementById("favorite-bowlers");
+  if(!container) return;
+  const favorites=bowlers.filter(bowler=>favoriteBowlers.includes(bowler.name));
+  if(!favorites.length){
+    container.innerHTML='<p class="favorites-empty">No favorites selected yet. Star Alabama bowlers to keep their latest position and average together here.</p>';
+    return;
+  }
+
+  container.innerHTML=favorites.map(bowler=>{
+    const index=bowlers.indexOf(bowler);
+    const isJack=bowler.name.toLowerCase()==="jack wix";
+    const diff=isJack ? 0 : Number(bowler.total)-Number(jackTotal);
+    return `<article class="favorite-card ${isJack?"jack-favorite":""}">
+      <button type="button" class="favorite-profile" data-bowler-index="${index}">${escapeHtml(bowler.name)}</button>
+      <div><span>Rank</span><strong>#${bowler.rank}${bowler.tied?"T":""}</strong></div>
+      <div><span>Average</span><strong>${Number(bowler.average).toFixed(2)}</strong></div>
+      <div><span>vs. Jack</span><strong>${isJack?"Jack":`${diff>0?"+":""}${diff}`}</strong></div>
+    </article>`;
+  }).join("");
+
+  container.querySelectorAll(".favorite-profile").forEach(button=>{
+    button.addEventListener("click",()=>openBowlerDialog(bowlers[Number(button.dataset.bowlerIndex)],jackTotal));
   });
 }
 
@@ -333,6 +572,132 @@ function renderLastQualifier(schedule, blocks){
   setText("last-detail", `${dt} · ${last.location}`);
 }
 
+function calendarTimestamp(date){
+  return date.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z");
+}
+
+function calendarUrl(event){
+  const start=new Date(event.start);
+  const end=new Date(start.getTime()+Number(event.duration_minutes || 180)*60000);
+  const params=new URLSearchParams({
+    action:"TEMPLATE",
+    text:`Jack Wix · ${event.title}`,
+    dates:`${calendarTimestamp(start)}/${calendarTimestamp(end)}`,
+    details:"Jack Wix bowling in the U18 Boys division at the 2026 Junior Gold Championships.",
+    location:event.location || ""
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function mapUrl(event){
+  if(event.map_url) return event.map_url;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location || "")}`;
+}
+
+function renderNextActions(schedule){
+  const container=document.getElementById("next-actions");
+  if(!container) return;
+  const next=(schedule || []).find(event=>new Date(event.start).getTime()>Date.now());
+  if(!next){
+    container.innerHTML='<span class="next-action-note">Qualifying schedule complete</span>';
+    return;
+  }
+
+  const stream=next.livestream || {};
+  container.innerHTML=`
+    <a href="${escapeHtml(mapUrl(next))}" target="_blank" rel="noopener">Open in Maps ↗</a>
+    <a href="${escapeHtml(calendarUrl(next))}" target="_blank" rel="noopener">Add to Calendar ↗</a>
+    ${stream.available && stream.url
+      ? `<a href="${escapeHtml(stream.url)}" target="_blank" rel="noopener">${escapeHtml(stream.label || "Watch on BowlTV")} ↗</a>`
+      : '<span class="next-action-note">No BowlTV stream listed for this center</span>'}
+  `;
+}
+
+function renderTournamentPath(stages,current){
+  const list=document.getElementById("tournament-path");
+  if(!list) return;
+  const defaults=[
+    {id:"qualifying",title:"Qualifying",detail:"Four blocks · 16 games"},
+    {id:"advancers",title:"Advancers Round",detail:"Five games after the first cut"},
+    {id:"final-advancers",title:"Final Advancers",detail:"Five additional games after the second cut"},
+    {id:"match-play",title:"Match Play",detail:"Top 16 bowlers"}
+  ];
+  const path=Array.isArray(stages) && stages.length ? stages : defaults;
+  const games=Number(current.games_complete || 0);
+  const activeIndex=games<16 ? 0 : 1;
+
+  list.innerHTML=path.map((stage,index)=>{
+    const state=index<activeIndex ? "complete" : index===activeIndex ? "current" : "future";
+    const stateLabel=state==="complete" ? "Complete" : state==="current" ? (index===0 ? `${games} of 16 games` : "Awaiting official advancement status") : "Must advance";
+    return `<li class="path-stage ${state}" ${state==="current"?'aria-current="step"':""}>
+      <span class="path-marker" aria-hidden="true">${state==="complete"?"✓":index+1}</span>
+      <div>
+        <span class="path-state">${escapeHtml(stateLabel)}</span>
+        <strong>${escapeHtml(stage.title)}</strong>
+        <small>${escapeHtml(stage.detail)}</small>
+      </div>
+    </li>`;
+  }).join("");
+}
+
+function shareText(data){
+  const current=data.current || {};
+  const field=data.field_size?.current_report ?? current.field_size;
+  const next=(data.schedule || []).find(event=>new Date(event.start).getTime()>Date.now());
+  const lines=[
+    `Jack Wix Junior Gold update: #${current.position ?? "—"}${field ? ` of ${field}` : ""} after ${current.games_complete ?? "—"} of 16 qualifying games.`,
+    `${current.total ?? "—"} total pins · ${current.average==null?"—":Number(current.average).toFixed(2)} average.`
+  ];
+  if(next) lines.push(`Next: ${next.title}, ${fmt.format(new Date(next.start))} at ${next.location}.`);
+  lines.push(data.site?.url || "https://jasonwix.github.io/jack-wix-junior-gold/");
+  return lines.join(" ");
+}
+
+function copyText(text){
+  if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  const field=document.createElement("textarea");
+  field.value=text;
+  field.setAttribute("readonly","");
+  field.style.position="fixed";
+  field.style.opacity="0";
+  document.body.appendChild(field);
+  field.select();
+  const copied=document.execCommand("copy");
+  field.remove();
+  return copied ? Promise.resolve() : Promise.reject(new Error("Copy command was unavailable"));
+}
+
+function setupShareButton(){
+  const button=document.getElementById("share-dashboard");
+  const status=document.getElementById("share-status");
+  if(!button || !status) return;
+  button.addEventListener("click",async()=>{
+    if(!dashboardData){
+      status.textContent="Dashboard data is still loading.";
+      return;
+    }
+    const text=shareText(dashboardData);
+    try{
+      if(typeof navigator.share==="function"){
+        await navigator.share({title:"Jack Wix · Junior Gold 2026",text,url:dashboardData.site?.url || location.href});
+        status.textContent="Family update shared.";
+      }else{
+        await copyText(text);
+        status.textContent="Family update copied.";
+      }
+    }catch(error){
+      if(error?.name==="AbortError") return;
+      try{
+        await copyText(text);
+        status.textContent="Family update copied.";
+      }catch(copyError){
+        console.error(copyError);
+        status.textContent="Sharing is unavailable in this browser.";
+      }
+    }
+  });
+}
+
 function renderSchedule(schedule){
   const now=Date.now(), future=schedule.filter(s=>new Date(s.start).getTime()>now);
   const next=future[0]?.start;
@@ -361,5 +726,7 @@ function startCountdown(schedule){
   update(); setInterval(update,1000);
 }
 setupCollapsibleSections();
+setupSectionControls();
 setupBowlerDialog();
+setupShareButton();
 load().catch(err=>{console.error(err);setText("next-title","Unable to load dashboard data")});

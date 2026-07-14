@@ -91,6 +91,35 @@ class ParserTests(unittest.TestCase):
         MODULE.update_dashboard(dashboard, [first, second], second.updated_at)
         self.assertEqual(dashboard["current"]["field_size"], 3)
 
+    def test_history_does_not_duplicate_unchanged_results(self):
+        rows = MODULE.parse_standings(ROUND_ONE, 1)
+        report = MODULE.Report(1, "https://example.test/r1.pdf", ROUND_ONE, MODULE.parse_source_updated_at(ROUND_ONE), rows)
+        dashboard = {"current": {}, "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)]}
+
+        MODULE.update_dashboard(dashboard, [report], report.updated_at)
+        MODULE.update_dashboard(dashboard, [report], report.updated_at.replace(minute=57))
+
+        self.assertEqual(len(dashboard["history"]), 1)
+        self.assertEqual(dashboard["history"][0]["games_complete"], 4)
+
+    def test_history_appends_when_a_new_block_posts(self):
+        first_rows = MODULE.parse_standings(ROUND_ONE, 1)
+        second_rows = MODULE.parse_standings(ROUND_TWO, 2)
+        first = MODULE.Report(1, "https://example.test/r1.pdf", ROUND_ONE, MODULE.parse_source_updated_at(ROUND_ONE), first_rows)
+        second = MODULE.Report(2, "https://example.test/r2.pdf", ROUND_TWO, MODULE.parse_source_updated_at(ROUND_TWO), second_rows)
+        dashboard = {"current": {}, "blocks": [{"round": n, "games": [], "total": None} for n in range(1, 5)]}
+
+        MODULE.update_dashboard(dashboard, [first], first.updated_at)
+        MODULE.update_dashboard(dashboard, [first, second], second.updated_at)
+
+        self.assertEqual([item["games_complete"] for item in dashboard["history"]], [4, 8])
+        self.assertEqual(dashboard["history"][-1]["position"], 200)
+        self.assertAlmostEqual(
+            dashboard["history"][-1]["cut_pace_average"],
+            dashboard["history"][-1]["projected_cut_total"] / 16,
+            places=2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
