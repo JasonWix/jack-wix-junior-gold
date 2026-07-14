@@ -40,161 +40,219 @@
   </header>
 
   <main class="container">
-    <section class="feature-grid" aria-label="Upcoming and previous qualifying blocks">
-      <article class="feature-card next-card">
-        <div class="feature-copy">
-          <p class="label">Next scheduled block</p>
-          <h2 id="next-title">Loading…</h2>
-          <p id="next-detail" class="muted"></p>
-        </div>
-        <div class="countdown" id="countdown">--d --h --m --s</div>
-      </article>
-
-      <article class="feature-card last-card">
-        <div class="feature-copy">
-          <p class="label">Last bowled qualifier</p>
-          <h2 id="last-title">Loading…</h2>
-          <p id="last-detail" class="muted"></p>
-        </div>
-      </article>
-    </section>
-
-    <section class="source-status" aria-live="polite">
-      <div class="source-status-main">
-        <span id="source-status-dot" class="status-dot" aria-hidden="true"></span>
+    <details id="section-qualifying-overview" class="dashboard-section overview-section" open>
+      <summary class="section-summary">
         <div>
-          <p class="label">Official results status</p>
-          <strong id="source-status-title">Loading Bowl.com status…</strong>
-          <p id="source-status-detail" class="muted"></p>
+          <p class="label">Tournament at a glance</p>
+          <h2>Qualifying overview</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <section class="feature-grid" aria-label="Upcoming and previous qualifying blocks">
+          <article class="feature-card next-card">
+            <div class="feature-copy">
+              <p class="label">Next scheduled block</p>
+              <h2 id="next-title">Loading…</h2>
+              <p id="next-detail" class="muted"></p>
+            </div>
+            <div class="countdown" id="countdown">--d --h --m --s</div>
+          </article>
+
+          <article class="feature-card last-card">
+            <div class="feature-copy">
+              <p class="label">Last bowled qualifier</p>
+              <h2 id="last-title">Loading…</h2>
+              <p id="last-detail" class="muted"></p>
+            </div>
+          </article>
+        </section>
+      </div>
+    </details>
+
+    <details id="section-results-status" class="dashboard-section source-status-section" aria-live="polite" open>
+      <summary class="section-summary source-status-summary">
+        <div class="source-status-main">
+          <span id="source-status-dot" class="status-dot" aria-hidden="true"></span>
+          <div>
+            <p class="label">Official results status</p>
+            <h2>Latest Bowl.com report</h2>
+            <strong id="source-status-title">Loading Bowl.com status…</strong>
+          </div>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body source-status-body" aria-live="polite">
+        <p id="source-status-detail" class="muted"></p>
+        <a id="source-report-link" class="source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">View source ↗</a>
+      </div>
+    </details>
+
+    <details id="section-current-statistics" class="dashboard-section metrics-section" open>
+      <summary class="section-summary">
+        <div>
+          <p class="label">Current standings</p>
+          <h2>Jack's tournament statistics</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <section class="metrics" aria-label="Jack's current tournament statistics">
+          <article class="metric-card">
+            <span>Position / U18B field</span>
+            <strong id="position">—</strong>
+            <small id="field-size-note" class="metric-context">Loading participant count…</small>
+          </article>
+          <article class="metric-card">
+            <span>Total pins</span>
+            <strong id="total">—</strong>
+          </article>
+          <article class="metric-card">
+            <span>Average</span>
+            <strong id="average">—</strong>
+          </article>
+          <article class="metric-card">
+            <span>Games complete</span>
+            <strong id="games-complete">—</strong>
+          </article>
+          <article class="metric-card estimate-metric">
+            <span>Estimated cut gap*</span>
+            <strong id="from-cut">—</strong>
+            <small>Planning estimate, not official</small>
+          </article>
+          <article class="metric-card estimate-metric">
+            <span>Estimated avg. needed*</span>
+            <strong id="needed-average">—</strong>
+            <small>Planning estimate, not official</small>
+          </article>
+        </section>
+      </div>
+    </details>
+
+    <details id="section-cut-status" class="dashboard-section cut-status-panel" open>
+      <summary class="section-summary">
+        <div class="cut-status-heading">
+          <span id="cut-status-badge" class="cut-status-badge">Placeholder estimate</span>
+          <div>
+            <p class="label">Advancement cut status</p>
+            <h2 id="cut-status-title">There is no official cut yet</h2>
+          </div>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p id="cut-status-explanation">The official U18 Boys first cut is not established until all competitors complete 16 qualifying games.</p>
+        <div class="cut-method-grid">
+          <div>
+            <span>Current cut-gap basis</span>
+            <strong id="cut-gap-basis">Loading…</strong>
+          </div>
+          <div>
+            <span>Needed-average basis</span>
+            <strong id="needed-average-basis">Loading…</strong>
+          </div>
         </div>
       </div>
-      <a id="source-report-link" class="source-link" href="https://bowl.com/youth/youth-tournaments/junior-gold-championships/2026-results" target="_blank" rel="noopener">View source ↗</a>
-    </section>
+    </details>
 
-    <section class="metrics" aria-label="Jack's current tournament statistics">
-      <article class="metric-card">
-        <span>Position / U18B field</span>
-        <strong id="position">—</strong>
-        <small id="field-size-note" class="metric-context">Loading participant count…</small>
-      </article>
-      <article class="metric-card">
-        <span>Total pins</span>
-        <strong id="total">—</strong>
-      </article>
-      <article class="metric-card">
-        <span>Average</span>
-        <strong id="average">—</strong>
-      </article>
-      <article class="metric-card">
-        <span>Games complete</span>
-        <strong id="games-complete">—</strong>
-      </article>
-      <article class="metric-card estimate-metric">
-        <span>Estimated cut gap*</span>
-        <strong id="from-cut">—</strong>
-        <small>Planning estimate, not official</small>
-      </article>
-      <article class="metric-card estimate-metric">
-        <span>Estimated avg. needed*</span>
-        <strong id="needed-average">—</strong>
-        <small>Planning estimate, not official</small>
-      </article>
-    </section>
-
-    <section class="cut-status-panel" aria-labelledby="cut-status-title">
-      <div class="cut-status-heading">
-        <span id="cut-status-badge" class="cut-status-badge">Placeholder estimate</span>
-        <div>
-          <p class="label">Advancement cut status</p>
-          <h2 id="cut-status-title">There is no official cut yet</h2>
-        </div>
-      </div>
-      <p id="cut-status-explanation">The official U18 Boys first cut is not established until all competitors complete 16 qualifying games.</p>
-      <div class="cut-method-grid">
-        <div>
-          <span>Current cut-gap basis</span>
-          <strong id="cut-gap-basis">Loading…</strong>
-        </div>
-        <div>
-          <span>Needed-average basis</span>
-          <strong id="needed-average-basis">Loading…</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" aria-labelledby="scores-title">
-      <div class="panel-head">
+    <details id="section-scores" class="panel dashboard-section" open>
+      <summary class="panel-head section-summary">
         <div>
           <p class="label">Tournament progress</p>
           <h2 id="scores-title">Scores by block</h2>
         </div>
-        <p id="updated" class="muted panel-meta"></p>
+        <div class="summary-actions">
+          <p id="updated" class="muted panel-meta"></p>
+          <span class="section-toggle" aria-hidden="true"></span>
+        </div>
+      </summary>
+      <div class="section-body">
+        <div id="blocks" class="blocks"></div>
       </div>
-      <div id="blocks" class="blocks"></div>
-    </section>
+    </details>
 
-    <section class="panel" aria-labelledby="schedule-title">
-      <div class="panel-head">
+    <details id="section-schedule" class="panel dashboard-section" open>
+      <summary class="panel-head section-summary">
         <div>
           <p class="label">Tournament schedule</p>
           <h2 id="schedule-title">Squad 1 qualifying</h2>
         </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <div id="schedule" class="schedule"></div>
       </div>
-      <div id="schedule" class="schedule"></div>
-    </section>
+    </details>
 
-    <section class="panel" aria-labelledby="alabama-title">
-      <div class="panel-head alabama-heading">
+    <details id="section-alabama" class="panel dashboard-section" open>
+      <summary class="panel-head alabama-heading section-summary">
         <div>
           <p class="label">Representing Alabama</p>
           <h2 id="alabama-title">Alabama U18 Boys leaderboard</h2>
         </div>
-        <div class="alabama-panel-status">
-          <span id="alabama-status-pill" class="pill alabama-partial">Partial today</span>
-          <p id="alabama-status-note" class="muted">Additional Alabama bowlers are scheduled later today.</p>
-          <p class="muted bowler-click-note">Select a bowler’s name to view their tournament details.</p>
+        <div class="summary-actions alabama-summary-actions">
+          <div class="alabama-panel-status">
+            <span id="alabama-status-pill" class="pill alabama-partial">Partial today</span>
+            <p id="alabama-status-note" class="muted">Additional Alabama bowlers are scheduled later today.</p>
+            <p class="muted bowler-click-note">Select a bowler’s name to view their tournament details.</p>
+          </div>
+          <span class="section-toggle" aria-hidden="true"></span>
+        </div>
+      </summary>
+      <div class="section-body">
+        <div class="table-wrap">
+          <table class="leaderboard">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Bowler</th>
+                <th>Hometown</th>
+                <th>Games</th>
+                <th>Total</th>
+                <th>Average</th>
+                <th>vs. Jack</th>
+              </tr>
+            </thead>
+            <tbody id="alabama-bowlers"></tbody>
+          </table>
         </div>
       </div>
-      <div class="table-wrap">
-        <table class="leaderboard">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Bowler</th>
-              <th>Hometown</th>
-              <th>Games</th>
-              <th>Total</th>
-              <th>Average</th>
-              <th>vs. Jack</th>
-            </tr>
-          </thead>
-          <tbody id="alabama-bowlers"></tbody>
-        </table>
-      </div>
-    </section>
+    </details>
 
-    <section class="panel equipment-panel" aria-labelledby="equipment-title">
-      <div class="panel-head">
+    <details id="section-equipment" class="panel equipment-panel dashboard-section" open>
+      <summary class="panel-head section-summary">
         <div>
           <p class="label">Tournament equipment</p>
           <h2 id="equipment-title">Jack's registered ball card</h2>
           <p class="muted equipment-summary" id="equipment-summary"></p>
         </div>
-        <span class="pill equipment-count" id="equipment-count">5 balls</span>
+        <div class="summary-actions">
+          <span class="pill equipment-count" id="equipment-count">5 balls</span>
+          <span class="section-toggle" aria-hidden="true"></span>
+        </div>
+      </summary>
+      <div class="section-body">
+        <div id="equipment-grid" class="equipment-grid"></div>
+        <div class="equipment-rule-note">
+          <strong>Equipment note:</strong>
+          <span>Jack registered the five-ball tournament maximum. The urethane ball is permitted for qualifying and advancer play only when compliant with the event hardness rule and is not permitted beginning with match play.</span>
+        </div>
       </div>
-      <div id="equipment-grid" class="equipment-grid"></div>
-      <div class="equipment-rule-note">
-        <strong>Equipment note:</strong>
-        <span>Jack registered the five-ball tournament maximum. The urethane ball is permitted for qualifying and advancer play only when compliant with the event hardness rule and is not permitted beginning with match play.</span>
-      </div>
-    </section>
+    </details>
 
-    <section class="panel note" aria-labelledby="about-dashboard-title">
-      <p class="label">Dashboard guide</p>
-      <h2 id="about-dashboard-title">How to read this dashboard</h2>
-      <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary planning estimate, not an official advancement target.</p>
-      <p>Additional Alabama bowlers are scheduled later today, so the Alabama list will expand and should be complete after today's squads are posted. All schedule and countdown times use Central Time.</p>
-    </section>
+    <details id="section-dashboard-guide" class="panel note dashboard-section" open>
+      <summary class="panel-head section-summary">
+        <div>
+          <p class="label">Dashboard guide</p>
+          <h2 id="about-dashboard-title">How to read this dashboard</h2>
+        </div>
+        <span class="section-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+        <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary planning estimate, not an official advancement target.</p>
+        <p>Additional Alabama bowlers are scheduled later today, so the Alabama list will expand and should be complete after today's squads are posted. All schedule and countdown times use Central Time.</p>
+      </div>
+    </details>
   </main>
 
   <footer>
