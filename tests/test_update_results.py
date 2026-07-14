@@ -8,6 +8,7 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "update_results.py"
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
+EXPLORER_DATA = Path(__file__).resolve().parents[1] / "data" / "bowlers.json"
 SPEC = importlib.util.spec_from_file_location("update_results", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
@@ -54,6 +55,18 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(jack["block_total"], 820)
         self.assertEqual(jack["grand_total"], 1526)
         self.assertEqual(jack["games_complete"], 8)
+        self.assertEqual(jack["previous_total"], 706)
+
+    def test_archive_parser_accepts_incomplete_final_entry(self):
+        text = (
+            "1341 Jose Jimenez 22-4726 New York, FC Squad 32 Day 4 "
+            "1080 0 0 0 0 0 1080 90.00 -212012\n"
+        )
+        self.assertEqual(MODULE.parse_standings(text, 4), [])
+        rows = MODULE.parse_standings(text, 4, allow_partial=True)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["games_complete"], 12)
+        self.assertEqual(rows[0]["grand_total"], 1080)
 
     def test_accepts_missing_state_and_glued_usbc_id(self):
         text = (
@@ -169,6 +182,49 @@ class ParserTests(unittest.TestCase):
         MODULE.update_dashboard(data, [report], report.updated_at)
 
         self.assertEqual(data["year_comparison"], expected)
+
+    def test_bowler_explorer_archive_has_every_2025_entry(self):
+        explorer = json.loads(EXPLORER_DATA.read_text(encoding="utf-8"))
+        archive = explorer["years"]["2025"]
+        live = explorer["years"]["2026"]
+
+        self.assertEqual(archive["field_size"], 1341)
+        self.assertEqual(len(archive["bowlers"]), 1341)
+        self.assertEqual(len({bowler["id"] for bowler in archive["bowlers"]}), 1341)
+        self.assertEqual(len(live["bowlers"]), live["field_size"])
+
+        jack_2025 = next(bowler for bowler in archive["bowlers"] if bowler["name"] == "Jack Wix")
+        jack_2026 = next(bowler for bowler in live["bowlers"] if bowler["name"] == "Jack Wix")
+        self.assertEqual((jack_2025["total"], jack_2025["rank"]), (2631, 1009))
+        self.assertEqual((jack_2026["total"], jack_2026["rank"]), (706, 364))
+        self.assertFalse(
+            any(
+                block["total"] == 0
+                for bowler in archive["bowlers"]
+                for block in bowler.get("blocks", [])
+            )
+        )
+
+    def test_live_explorer_update_preserves_2025_archive(self):
+        explorer = json.loads(EXPLORER_DATA.read_text(encoding="utf-8"))
+        expected_archive = deepcopy(explorer["years"]["2025"])
+        rows = MODULE.parse_standings(ROUND_ONE, 1)
+        report = MODULE.Report(
+            1,
+            "https://example.test/r1.pdf",
+            ROUND_ONE,
+            MODULE.parse_source_updated_at(ROUND_ONE),
+            rows,
+        )
+
+        MODULE.update_bowler_explorer_data(explorer, [report], report.updated_at)
+
+        self.assertEqual(explorer["years"]["2025"], expected_archive)
+        self.assertEqual(len(explorer["years"]["2026"]["bowlers"]), 3)
+        self.assertEqual(
+            next(bowler for bowler in explorer["years"]["2026"]["bowlers"] if bowler["name"] == "Jack Wix")["games_complete"],
+            4,
+        )
 
 
 if __name__ == "__main__":

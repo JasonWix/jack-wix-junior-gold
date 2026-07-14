@@ -28,6 +28,7 @@ ROUNDS = [f"Qualifying Round {number}" for number in range(1, 5)]
 EXPECTED_U18B_SQUADS = {1, 2, 11, 12, 21, 22, 31, 32}
 CENTRAL = ZoneInfo("America/Chicago")
 DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
+EXPLORER_DATA = Path(__file__).resolve().parents[1] / "data" / "bowlers.json"
 HISTORY_LIMIT = 96
 
 REQUEST_HEADERS = {
@@ -40,7 +41,7 @@ REQUEST_HEADERS = {
 ROW_RE = re.compile(
     r"^(?P<rank>\d{1,4})(?P<tied>T)?\s+"
     r"(?P<name>.+?)\s*"
-    r"(?P<usbc>\d{1,6}-\d{1,6})\s+"
+    r"(?P<usbc>\d{1,6}-\d{1,10})\s+"
     r"(?P<hometown>.+?)\s+"
     r"Squad\s+(?P<squad>\d+)\s+Day\s+(?P<day>\d+)\s+"
     r"(?P<tail>.+)$",
@@ -143,9 +144,10 @@ def parse_source_updated_at(text: str) -> datetime | None:
     return parsed.replace(tzinfo=CENTRAL)
 
 
-def _parse_row(line: str, report_round: int) -> dict | None:
+def _parse_row(line: str, report_round: int, allow_partial: bool = False) -> dict | None:
     """Parse one standings row and validate the four-game block arithmetically."""
     normalized = " ".join(line.split())
+    normalized = re.sub(r"(?<=[A-Za-z,])Squad\s+", " Squad ", normalized, flags=re.I)
     match = ROW_RE.match(normalized)
     if not match or int(match.group("day")) != report_round:
         return None
@@ -173,6 +175,16 @@ def _parse_row(line: str, report_round: int) -> dict | None:
         return None
 
     games_complete = report_round * 4
+    if allow_partial:
+        possible_counts = [
+            count
+            for count in range(max(1, (report_round - 1) * 4), (report_round * 4) + 1)
+            if abs(average - (grand_total / count)) <= 0.02
+        ]
+        if possible_counts:
+            games_complete = max(possible_counts)
+    if games_complete <= 0:
+        return None
     if abs(average - (grand_total / games_complete)) > 0.02:
         return None
     hometown = re.sub(r"\s+", " ", match.group("hometown")).strip()
@@ -187,6 +199,7 @@ def _parse_row(line: str, report_round: int) -> dict | None:
         "squad": int(match.group("squad")),
         "round": report_round,
         "games": games,
+        "previous_total": previous_total,
         "block_total": block_total,
         "grand_total": grand_total,
         "average": round(average, 2),
@@ -194,8 +207,16 @@ def _parse_row(line: str, report_round: int) -> dict | None:
     }
 
 
-def parse_standings(text: str, report_round: int) -> list[dict]:
-    rows = [row for line in text.splitlines() if (row := _parse_row(line, report_round))]
+def parse_standings(
+    text: str,
+    report_round: int,
+    allow_partial: bool = False,
+) -> list[dict]:
+    rows = [
+        row
+        for line in text.splitlines()
+        if (row := _parse_row(line, report_round, allow_partial=allow_partial))
+    ]
     rank_counts: dict[int, int] = {}
     for row in rows:
         rank_counts[row["rank"]] = rank_counts.get(row["rank"], 0) + 1
@@ -265,6 +286,146 @@ def build_alabama_profiles(reports: list[Report]) -> list[dict]:
             }
         )
     return sorted(profiles, key=lambda row: (row["rank"], row["name"]))
+
+
+def build_all_bowler_profiles(
+    reports: list[Report],
+    *,
+    year: int,
+    source_page: str,
+    checked_at: datetime,
+    field_size: int | None = None,
+    status: str = "live",
+    derive_missing_blocks: bool = False,
+) -> dict:
+    """Build the compact source-backed dataset used by the Bowler Explorer."""
+    ordered_reports = sorted(reports, key=lambda item: (item.round_number, item.updated_at))
+    report_by_round = {report.round_number: report for report in ordered_reports}
+    rows_by_id: dict[str, dict[int, dict]] = {}
+    for report in ordered_reports:
+        for row in report.rows:
+            rows_by_id.setdefault(row["usbc_id"], {})[report.round_number] = row
+
+    if field_size is None:
+        field_size = len(rows_by_id)
+    report_field_sizes = {
+        report.round_number: len({row["usbc_id"] for row in report.rows})
+        for report in ordered_reports
+    }
+
+    profiles: list[dict] = []
+    for usbc_id, rows_for_bowler in rows_by_id.items():
+        latest_round = max(rows_for_bowler)
+        latest = rows_for_bowler[latest_round]
+        blocks: dict[int, dict] = {}
+
+        for round_number, row in sorted(rows_for_bowler.items()):
+            posted_games = [score for score in row["games"] if score > 0]
+            if not posted_games and row["block_total"] == 0:
+                continue
+            report = report_by_round[round_number]
+            blocks[round_number] = {
+                "round": round_number,
+                "games": posted_games,
+                "total": row["block_total"],
+                "cumulative_total": row["grand_total"],
+                "cumulative_average": row["average"],
+                "position": row["rank"],
+                "tied": row["tied"],
+            }
+
+        if derive_missing_blocks:
+            round_two = rows_for_bowler.get(2)
+            round_four = rows_for_bowler.get(4)
+
+            # Some 2025 PDFs wrap long rows and omit game-level extraction. The
+            # official cumulative totals still let us preserve the block total.
+            if 1 not in blocks and round_two and round_two["previous_total"] >= 0:
+                blocks[1] = {
+                    "round": 1,
+                    "games": [],
+                    "total": round_two["previous_total"],
+                    "cumulative_total": round_two["previous_total"],
+                    "cumulative_average": round(round_two["previous_total"] / 4, 2),
+                    "position": None,
+                    "tied": False,
+                    "derived": True,
+                }
+
+            if 3 not in blocks and round_two and round_four:
+                day_three_total = round_four["previous_total"] - round_two["grand_total"]
+                if day_three_total > 0:
+                    blocks[3] = {
+                        "round": 3,
+                        "games": [],
+                        "total": day_three_total,
+                        "cumulative_total": round_four["previous_total"],
+                        "cumulative_average": round(round_four["previous_total"] / 12, 2),
+                        "position": None,
+                        "tied": False,
+                        "derived": True,
+                    }
+
+        profiles.append(
+            {
+                "id": usbc_id,
+                "name": latest["name"],
+                "hometown": latest["hometown"],
+                "state": latest["state"],
+                "squad": latest["squad"],
+                "latest_round": latest_round,
+                "rank": latest["rank"],
+                "tied": latest["tied"],
+                "games_complete": latest["games_complete"],
+                "total": latest["grand_total"],
+                "average": latest["average"],
+                "field_size": field_size,
+                "blocks": sorted(blocks.values(), key=lambda item: item["round"]),
+            }
+        )
+
+    newest_report = max(ordered_reports, key=lambda report: report.updated_at)
+    return {
+        "year": year,
+        "division": "U18 Boys",
+        "status": status,
+        "generated_at": checked_at.isoformat(),
+        "source_page": source_page,
+        "source_updated_at": newest_report.updated_at.isoformat(),
+        "field_size": field_size,
+        "reports": [
+            {
+                "round": report.round_number,
+                "source_url": f"{report.url}?v=new",
+                "source_updated_at": report.updated_at.isoformat(),
+                "parsed_bowlers": report_field_sizes[report.round_number],
+            }
+            for report in ordered_reports
+        ],
+        "bowlers": sorted(profiles, key=lambda profile: (profile["name"].casefold(), profile["id"])),
+    }
+
+
+def update_bowler_explorer_data(
+    data: dict,
+    reports: list[Report],
+    checked_at: datetime,
+) -> dict:
+    """Replace only the live 2026 slice; the verified 2025 archive is immutable."""
+    if not reports:
+        return data
+    field_size = len({row["usbc_id"] for report in reports for row in report.rows})
+    data.setdefault("version", 1)
+    data.setdefault("years", {})["2026"] = build_all_bowler_profiles(
+        reports,
+        year=2026,
+        source_page=RESULTS_PAGE,
+        checked_at=checked_at,
+        field_size=field_size,
+        status="live",
+    )
+    data["updated_at"] = checked_at.isoformat()
+    return data
 
 
 def provisional_cut(latest: Report) -> dict | None:
@@ -443,9 +604,14 @@ def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) ->
     return data
 
 
-def write_json_atomic(path: Path, data: dict) -> None:
+def write_json_atomic(path: Path, data: dict, *, compact: bool = False) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    serialized = (
+        json.dumps(data, separators=(",", ":"))
+        if compact
+        else json.dumps(data, indent=2)
+    )
+    temporary.write_text(serialized + "\n", encoding="utf-8")
     json.loads(temporary.read_text(encoding="utf-8"))
     temporary.replace(path)
 
@@ -453,13 +619,26 @@ def write_json_atomic(path: Path, data: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, default=DATA, help="dashboard JSON path")
+    parser.add_argument(
+        "--explorer-data",
+        type=Path,
+        default=EXPLORER_DATA,
+        help="all-bowler explorer JSON path",
+    )
     args = parser.parse_args()
 
     data = json.loads(args.data.read_text(encoding="utf-8"))
+    explorer = (
+        json.loads(args.explorer_data.read_text(encoding="utf-8"))
+        if args.explorer_data.exists()
+        else {"version": 1, "years": {}}
+    )
     checked_at = datetime.now(CENTRAL)
     reports, _ = fetch_reports()
     update_dashboard(data, reports, checked_at)
+    update_bowler_explorer_data(explorer, reports, checked_at)
     write_json_atomic(args.data, data)
+    write_json_atomic(args.explorer_data, explorer, compact=True)
 
     status = data.get("source_status", {}).get("status")
     current = data.get("current", {})

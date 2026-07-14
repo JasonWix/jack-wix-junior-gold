@@ -1,4 +1,12 @@
 let dashboardData = null;
+let bowlerExplorerData = null;
+let explorerSelectedProfile = null;
+let explorerSelectedYear = "2026";
+
+const STATE_NAMES = {
+  AK:"Alaska",AL:"Alabama",AR:"Arkansas",AZ:"Arizona",CA:"California",CO:"Colorado",CT:"Connecticut",DC:"District of Columbia",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",IA:"Iowa",ID:"Idaho",IL:"Illinois",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MA:"Massachusetts",MD:"Maryland",ME:"Maine",MI:"Michigan",MN:"Minnesota",MO:"Missouri",MS:"Mississippi",MT:"Montana",NC:"North Carolina",ND:"North Dakota",NE:"Nebraska",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NV:"Nevada",NY:"New York",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",VT:"Vermont",WA:"Washington",WI:"Wisconsin",WV:"West Virginia",WY:"Wyoming",
+  AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon",FC:"Foreign country"
+};
 
 const SECTION_STATE_KEY = "jack-wix-dashboard:section-state";
 const LAST_VISIT_KEY = "jack-wix-dashboard:last-visit";
@@ -92,6 +100,11 @@ async function load(){
   renderNextActions(d.schedule);
   renderTournamentPath(d.tournament_path || [], d.current || {});
   startCountdown(d.schedule);
+  loadBowlerExplorer().catch(error=>{
+    console.error(error);
+    setText("explorer-data-status","Bowler list unavailable");
+    setText("explorer-search-status","The searchable bowler data could not be loaded. Jack's dashboard remains available below.");
+  });
 }
 
 
@@ -157,6 +170,376 @@ function escapeHtml(value){
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
+}
+
+function normalizeExplorerText(value){
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g," ")
+    .trim();
+}
+
+function explorerYearData(year){
+  return bowlerExplorerData?.years?.[String(year)] || null;
+}
+
+function explorerReport(yearData,round){
+  const reports=Array.isArray(yearData?.reports) ? yearData.reports : [];
+  return reports.find(report=>Number(report.round)===Number(round)) || reports.at(-1) || null;
+}
+
+function explorerStateValue(bowler){
+  return String(bowler?.state || "").trim().toUpperCase() || "__NONE__";
+}
+
+function explorerStateLabel(value){
+  if(value==="__NONE__") return "State unavailable";
+  return STATE_NAMES[value] ? `${STATE_NAMES[value]} (${value})` : value;
+}
+
+function populateExplorerStates(yearData,preferredState=""){
+  const select=document.getElementById("explorer-state");
+  const counts=new Map();
+  (yearData?.bowlers || []).forEach(bowler=>{
+    const value=explorerStateValue(bowler);
+    counts.set(value,(counts.get(value) || 0)+1);
+  });
+  const entries=[...counts.entries()].sort((a,b)=>
+    explorerStateLabel(a[0]).localeCompare(explorerStateLabel(b[0]))
+  );
+  select.innerHTML='<option value="">All states</option>'+entries.map(([value,count])=>
+    `<option value="${escapeHtml(value)}">${escapeHtml(explorerStateLabel(value))} · ${count.toLocaleString()}</option>`
+  ).join("");
+  select.value=counts.has(preferredState) ? preferredState : "";
+  select.disabled=false;
+}
+
+function matchingExplorerProfile(profile,targetYearData){
+  const bowlers=Array.isArray(targetYearData?.bowlers) ? targetYearData.bowlers : [];
+  return bowlers.find(bowler=>bowler.id===profile.id)
+    || bowlers.find(bowler=>
+      normalizeExplorerText(bowler.name)===normalizeExplorerText(profile.name)
+      && normalizeExplorerText(bowler.hometown)===normalizeExplorerText(profile.hometown)
+    )
+    || null;
+}
+
+function setExplorerYear(year){
+  explorerSelectedYear=String(year);
+  document.querySelectorAll("[data-explorer-year]").forEach(button=>{
+    button.setAttribute("aria-pressed",String(button.dataset.explorerYear===explorerSelectedYear));
+  });
+}
+
+function clearExplorerProfile({clearUrl=true}={}){
+  explorerSelectedProfile=null;
+  const profile=document.getElementById("explorer-profile");
+  if(profile) profile.hidden=true;
+  const search=document.getElementById("explorer-search");
+  if(search){
+    search.value="";
+    search.focus({preventScroll:true});
+  }
+  renderExplorerMatches();
+  if(clearUrl){
+    const url=new URL(location.href);
+    const state=document.getElementById("explorer-state")?.value || "";
+    url.searchParams.set("year",explorerSelectedYear);
+    if(state) url.searchParams.set("state",state);
+    else url.searchParams.delete("state");
+    url.searchParams.delete("bowler");
+    history.replaceState({},"",url);
+  }
+}
+
+function renderExplorerMatches(){
+  const search=document.getElementById("explorer-search");
+  const results=document.getElementById("explorer-results");
+  const yearData=explorerYearData(explorerSelectedYear);
+  const query=normalizeExplorerText(search.value);
+  const selectedState=document.getElementById("explorer-state")?.value || "";
+  results.innerHTML="";
+
+  const minimumQueryLength=selectedState ? 1 : 2;
+  if(!selectedState && query.length<minimumQueryLength){
+    setText("explorer-search-status",`Type at least two characters to search the ${explorerSelectedYear} U18 Boys field.`);
+    return;
+  }
+
+  const matches=(yearData?.bowlers || []).filter(bowler=>{
+    if(selectedState && explorerStateValue(bowler)!==selectedState) return false;
+    if(query.length<minimumQueryLength) return true;
+    const haystack=normalizeExplorerText(`${bowler.name} ${bowler.hometown}`);
+    return query.split(" ").every(term=>haystack.includes(term));
+  }).sort((a,b)=>Number(a.rank)-Number(b.rank) || a.name.localeCompare(b.name));
+  const visible=selectedState ? matches : matches.slice(0,20);
+  const stateLabel=selectedState ? explorerStateLabel(selectedState) : "";
+  setText(
+    "explorer-search-status",
+    selectedState
+      ? matches.length
+        ? `${query ? `${matches.length.toLocaleString()} matching` : `Showing all ${matches.length.toLocaleString()}`} U18 Boys bowler${matches.length===1?"":"s"} from ${stateLabel} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} U18 Boys bowlers from ${stateLabel} matched “${search.value.trim()}”.`
+      : matches.length
+        ? `${matches.length.toLocaleString()} match${matches.length===1?"":"es"} in ${explorerSelectedYear}. Select a name to open the profile.`
+        : `No ${explorerSelectedYear} U18 Boys bowlers matched “${search.value.trim()}”.`
+  );
+
+  results.innerHTML=visible.map(bowler=>`<button type="button" role="option" data-explorer-id="${escapeHtml(bowler.id)}">
+    <span><strong>${escapeHtml(bowler.name)}</strong><small>${escapeHtml(bowler.hometown || "Hometown unavailable")}</small></span>
+    <span class="explorer-result-stats"><strong>#${bowler.rank}${bowler.tied?"T":""}</strong><small>${Number(bowler.total).toLocaleString()} pins · ${Number(bowler.average).toFixed(2)}</small></span>
+  </button>`).join("");
+
+  if(!selectedState && matches.length>visible.length){
+    results.insertAdjacentHTML("beforeend",`<p class="explorer-result-limit">Showing the first ${visible.length}. Keep typing to narrow the list.</p>`);
+  }
+  results.querySelectorAll("button[data-explorer-id]").forEach(button=>{
+    button.addEventListener("click",()=>selectExplorerProfile(explorerSelectedYear,button.dataset.explorerId));
+  });
+}
+
+function explorerMetric(label,value,note=""){
+  if(value==null || value==="") return "";
+  return `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>${note?`<small>${escapeHtml(note)}</small>`:""}</article>`;
+}
+
+function explorerYearCard(year,yearData,profile){
+  const status=yearData.status==="final" ? "Final" : "Latest posted";
+  return `<article class="explorer-year-card">
+    <div><span>${year}</span><small>${status}</small></div>
+    <strong>${Number(profile.total).toLocaleString()} pins</strong>
+    <p>${Number(profile.average).toFixed(2)} average · #${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}</p>
+    <small>${profile.games_complete} qualifying games</small>
+  </article>`;
+}
+
+function explorerCheckpoint(profile,gamesComplete){
+  if(Number(profile.games_complete)===Number(gamesComplete)){
+    return {total:Number(profile.total),average:Number(profile.average)};
+  }
+  const round=Number(gamesComplete)/4;
+  const block=(profile.blocks || []).find(item=>Number(item.round)===round && item.cumulative_total!=null);
+  return block ? {total:Number(block.cumulative_total),average:Number(block.cumulative_average)} : null;
+}
+
+function renderExplorerYearComparison(year,yearData,profile){
+  const section=document.getElementById("explorer-year-section");
+  const container=document.getElementById("explorer-year-comparison");
+  const otherYear=String(year)==="2026" ? "2025" : "2026";
+  const otherYearData=explorerYearData(otherYear);
+  const otherProfile=otherYearData ? matchingExplorerProfile(profile,otherYearData) : null;
+  if(!otherProfile){
+    section.hidden=true;
+    container.innerHTML="";
+    return;
+  }
+
+  const ordered=[
+    {year:String(year),yearData,profile},
+    {year:otherYear,yearData:otherYearData,profile:otherProfile}
+  ].sort((a,b)=>Number(a.year)-Number(b.year));
+  const profile2026=String(year)==="2026" ? profile : otherProfile;
+  const profile2025=String(year)==="2025" ? profile : otherProfile;
+  const checkpointGames=Number(profile2026.games_complete);
+  const checkpoint2026=explorerCheckpoint(profile2026,checkpointGames);
+  const checkpoint2025=explorerCheckpoint(profile2025,checkpointGames);
+  const comparable=checkpoint2026 && checkpoint2025 && checkpointGames>0 && checkpointGames%4===0;
+  const comparison=comparable
+    ? `<div class="explorer-comparison-delta">
+        <span>2026 vs. 2025 at ${checkpointGames} games</span>
+        <strong>${signedNumber(checkpoint2026.total-checkpoint2025.total)} pins · ${signedNumber(checkpoint2026.average-checkpoint2025.average,2)} average</strong>
+      </div>`
+    : `<p class="explorer-comparison-caveat">A same-stage total is not available in both years, so no direct scoring delta is shown.</p>`;
+
+  section.hidden=false;
+  container.innerHTML=`<div class="explorer-year-cards">${ordered.map(item=>explorerYearCard(item.year,item.yearData,item.profile)).join("")}</div>${comparison}`;
+}
+
+function renderExplorerBlocks(yearData,profile){
+  const section=document.getElementById("explorer-block-section");
+  const container=document.getElementById("explorer-blocks");
+  const blocks=(Array.isArray(profile.blocks) ? profile.blocks : []).filter(block=>
+    Number(block.total)>0 || (Array.isArray(block.games) && block.games.length)
+  );
+  if(!blocks.length){
+    section.hidden=true;
+    container.innerHTML="";
+    return;
+  }
+
+  section.hidden=false;
+  container.innerHTML=blocks.map(block=>{
+    const games=Array.isArray(block.games) ? block.games : [];
+    const sourceRound=block.derived && Number(block.round)===3 ? 4 : block.round;
+    const report=explorerReport(yearData,sourceRound);
+    const details=[];
+    if(block.cumulative_total!=null) details.push(`${Number(block.cumulative_total).toLocaleString()} cumulative`);
+    if(block.cumulative_average!=null) details.push(`${Number(block.cumulative_average).toFixed(2)} average`);
+    if(block.position!=null) details.push(`#${block.position}${block.tied?"T":""} after Day ${block.round}`);
+    return `<article class="explorer-block-card ${block.derived?"derived-block":""}">
+      <header><h4>Day ${block.round}</h4>${block.derived?'<span>Verified total</span>':""}</header>
+      ${games.length
+        ? `<div class="explorer-game-list">${games.map(score=>`<span>${score}</span>`).join("")}</div>`
+        : '<p class="explorer-games-unavailable">Individual games were not machine-readable in the archived report.</p>'}
+      <strong>${Number(block.total).toLocaleString()} block pins</strong>
+      ${details.length?`<p>${escapeHtml(details.join(" · "))}</p>`:""}
+      ${block.derived?'<small>Calculated only from official cumulative totals; no game scores were inferred.</small>':""}
+      ${report?.source_url?`<a href="${escapeHtml(report.source_url)}" target="_blank" rel="noopener">Official report ↗</a>`:""}
+    </article>`;
+  }).join("");
+}
+
+function renderExplorerSources(yearData,profile){
+  const section=document.getElementById("explorer-source-section");
+  const links=document.getElementById("explorer-source-links");
+  const reports=Array.isArray(yearData.reports) ? yearData.reports : [];
+  const visibleRounds=new Set((profile.blocks || []).map(block=>block.derived && Number(block.round)===3 ? 4 : Number(block.round)));
+  const relevant=reports.filter(report=>visibleRounds.has(Number(report.round)) || Number(report.round)===Number(profile.latest_round));
+  const sourceLinks=[];
+  if(yearData.source_page) sourceLinks.push(`<a href="${escapeHtml(yearData.source_page)}" target="_blank" rel="noopener">${yearData.year} results page ↗</a>`);
+  relevant.forEach(report=>sourceLinks.push(`<a href="${escapeHtml(report.source_url)}" target="_blank" rel="noopener">Day ${report.round} report ↗</a>`));
+  if(!sourceLinks.length){
+    section.hidden=true;
+    links.innerHTML="";
+    return;
+  }
+
+  section.hidden=false;
+  setText(
+    "explorer-source-note",
+    yearData.archive_note || `${yearData.year} results reflect the latest valid official U18 Boys reports available to the dashboard.`
+  );
+  links.innerHTML=[...new Set(sourceLinks)].join("");
+}
+
+function renderExplorerProfile(year,yearData,profile){
+  const profileElement=document.getElementById("explorer-profile");
+  setText("explorer-profile-kicker",`${year} ${yearData.status==="final"?"final":"live"} U18 Boys results`);
+  setText("explorer-profile-name",profile.name);
+  setText("explorer-profile-meta",`${profile.hometown || "Hometown unavailable"} · Squad ${profile.squad} · Latest posted Day ${profile.latest_round}`);
+
+  const metrics=[
+    explorerMetric("Position",`#${profile.rank}${profile.tied?"T":""} of ${Number(yearData.field_size).toLocaleString()}`,yearData.status==="live"?"Published field; may change":"Final qualifying field"),
+    explorerMetric("Total pins",Number(profile.total).toLocaleString()),
+    explorerMetric("Average",Number(profile.average).toFixed(2)),
+    explorerMetric("Games complete",`${profile.games_complete} of 16`),
+    explorerMetric("Squad",profile.squad)
+  ].filter(Boolean);
+  document.getElementById("explorer-profile-metrics").innerHTML=metrics.join("");
+
+  renderExplorerYearComparison(year,yearData,profile);
+  renderExplorerBlocks(yearData,profile);
+  renderExplorerSources(yearData,profile);
+  profileElement.hidden=false;
+}
+
+function selectExplorerProfile(year,id,{updateUrl=true,scroll=true}={}){
+  const yearData=explorerYearData(year);
+  const profile=(yearData?.bowlers || []).find(bowler=>bowler.id===id);
+  if(!profile) return false;
+
+  setExplorerYear(year);
+  explorerSelectedProfile=profile;
+  document.getElementById("explorer-search").value=profile.name;
+  document.getElementById("explorer-results").innerHTML="";
+  setText("explorer-search-status",`Showing ${profile.name}'s ${year} U18 Boys results.`);
+  renderExplorerProfile(String(year),yearData,profile);
+
+  if(updateUrl){
+    const url=new URL(location.href);
+    const state=document.getElementById("explorer-state")?.value || "";
+    url.searchParams.set("year",String(year));
+    if(state) url.searchParams.set("state",state);
+    else url.searchParams.delete("state");
+    url.searchParams.set("bowler",profile.id);
+    history.replaceState({},"",url);
+  }
+  if(scroll) document.getElementById("explorer-profile").scrollIntoView({behavior:"smooth",block:"start"});
+  return true;
+}
+
+async function copyExplorerProfileLink(){
+  const status=document.getElementById("explorer-search-status");
+  if(!explorerSelectedProfile) return;
+  const url=new URL(location.href);
+  const state=document.getElementById("explorer-state")?.value || "";
+  url.searchParams.set("year",explorerSelectedYear);
+  if(state) url.searchParams.set("state",state);
+  else url.searchParams.delete("state");
+  url.searchParams.set("bowler",explorerSelectedProfile.id);
+  try{
+    await copyText(url.toString());
+    status.textContent=`Link copied for ${explorerSelectedProfile.name}.`;
+  }catch(error){
+    console.error(error);
+    status.textContent="The profile link could not be copied in this browser.";
+  }
+}
+
+function bindBowlerExplorer(){
+  const search=document.getElementById("explorer-search");
+  const state=document.getElementById("explorer-state");
+  if(search.dataset.bound==="true") return;
+  search.dataset.bound="true";
+  search.addEventListener("input",renderExplorerMatches);
+  search.addEventListener("keydown",event=>{
+    if(event.key==="Enter") document.querySelector("#explorer-results button[data-explorer-id]")?.click();
+    if(event.key==="Escape") clearExplorerProfile();
+  });
+  document.querySelectorAll("[data-explorer-year]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const targetYear=button.dataset.explorerYear;
+      const targetYearData=explorerYearData(targetYear);
+      const preferredState=state.value;
+      const match=explorerSelectedProfile ? matchingExplorerProfile(explorerSelectedProfile,targetYearData) : null;
+      setExplorerYear(targetYear);
+      populateExplorerStates(targetYearData,preferredState);
+      if(match) selectExplorerProfile(targetYear,match.id);
+      else clearExplorerProfile();
+    });
+  });
+  state.addEventListener("change",()=>{
+    if(explorerSelectedProfile){
+      explorerSelectedProfile=null;
+      document.getElementById("explorer-profile").hidden=true;
+      search.value="";
+    }
+    const url=new URL(location.href);
+    url.searchParams.set("year",explorerSelectedYear);
+    if(state.value) url.searchParams.set("state",state.value);
+    else url.searchParams.delete("state");
+    url.searchParams.delete("bowler");
+    history.replaceState({},"",url);
+    renderExplorerMatches();
+  });
+  document.getElementById("explorer-clear").addEventListener("click",()=>clearExplorerProfile());
+  document.getElementById("explorer-copy-link").addEventListener("click",copyExplorerProfileLink);
+}
+
+async function loadBowlerExplorer(){
+  const response=await fetch(`data/bowlers.json?v=${Date.now()}`,{cache:"no-store"});
+  if(!response.ok) throw new Error(`Bowler explorer returned ${response.status}`);
+  bowlerExplorerData=await response.json();
+  const live=explorerYearData("2026");
+  const archive=explorerYearData("2025");
+  const liveCount=live?.bowlers?.length || 0;
+  const archiveCount=archive?.bowlers?.length || 0;
+  setText("explorer-count-2026",liveCount?`${liveCount.toLocaleString()} live`:"Unavailable");
+  setText("explorer-count-2025",archiveCount?`${archiveCount.toLocaleString()} final`:"Unavailable");
+  setText("explorer-data-status",`${liveCount.toLocaleString()} live · ${archiveCount.toLocaleString()} archived`);
+  document.getElementById("explorer-search").disabled=false;
+  bindBowlerExplorer();
+
+  const params=new URLSearchParams(location.search);
+  const requestedYear=params.get("year")==="2025" ? "2025" : "2026";
+  const requestedState=String(params.get("state") || "").toUpperCase();
+  const requestedBowler=params.get("bowler");
+  setExplorerYear(requestedYear);
+  populateExplorerStates(explorerYearData(requestedYear),requestedState);
+  if(requestedBowler && selectExplorerProfile(requestedYear,requestedBowler,{updateUrl:false,scroll:false})) return;
+  renderExplorerMatches();
 }
 
 function currentVisitSnapshot(data){
