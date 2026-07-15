@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-14T23:42:46.568192-05:00",
+  "updated_at": "2026-07-14T23:58:26.319268-05:00",
   "current": {
     "position": 358,
     "total": 1464,
@@ -7,8 +7,8 @@
     "games_complete": 8,
     "pins_from_cut": -118,
     "needed_average": 212.5,
-    "target_final_average": 190,
-    "field_size": 915
+    "field_size": 915,
+    "projected_cut_average": 197.75
   },
   "blocks": [
     {
@@ -737,10 +737,10 @@
   "source_status": {
     "status": "current",
     "last_updated_at": "2026-07-14T23:23:00-05:00",
-    "last_checked_at": "2026-07-14T23:42:46.568192-05:00",
+    "last_checked_at": "2026-07-14T23:58:26.319268-05:00",
     "report": "Qualifying Round 2",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%202_U18Boys.pdf?v=new",
-    "age_minutes": 19,
+    "age_minutes": 35,
     "valid_reports": [
       1,
       2
@@ -811,18 +811,31 @@
     ]
   },
   "cut_projection": {
-    "status": "placeholder",
+    "status": "confirmed_position",
     "official": false,
-    "label": "Current-pace estimate",
-    "title": "There is no official cut yet",
-    "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. These values compare Jack with the current report at the provisional 1-in-7 advancing position and project that pace over 16 games.",
-    "gap_basis": "Temporary comparison to place 131 in the latest 8-game report containing Jack",
-    "needed_average_basis": "Temporary 16-game pace projection of 3164 pins",
-    "warning": "This is a planning estimate, not the official advancement cut.",
+    "position_confirmed": true,
+    "score_official": false,
+    "label": "Top 131 confirmed",
+    "title": "The advancement cut is confirmed at 131st place",
+    "explanation": "The number of U18 Boys advancing after 16 qualifying games is confirmed at 131. The final score needed is not known until Round 4 is complete, so the dashboard projects that score from the live 131st-place pace.",
+    "gap_basis": "Jack is compared with the current 131st-place score of 1582 after 8 games",
+    "needed_average_basis": "Current-pace target of 3164 pins; Jack needs 1700 over 8 games",
+    "warning": "The top-131 position is confirmed. The score needed to hold 131st remains a live planning estimate until qualifying ends.",
     "advancing_place": 131,
     "current_score": 1582,
     "projected_final_total": 3164,
-    "games_basis": 8
+    "games_basis": 8,
+    "published_bowlers": 914,
+    "remaining_plan": {
+      "remaining_games": 8,
+      "remaining_pins": 1700,
+      "remaining_blocks": 2,
+      "block_targets": [
+        850,
+        850
+      ],
+      "needed_average": 212.5
+    }
   },
   "alabama_status": {
     "status": "complete",

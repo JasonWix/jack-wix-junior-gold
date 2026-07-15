@@ -317,6 +317,7 @@ function setupSectionVisibilityManager(){
 }
 
 const fmt = new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago",timeZoneName:"short"});
+const weekdayFmt = new Intl.DateTimeFormat("en-US",{weekday:"long",timeZone:"America/Chicago"});
 
 async function load(){
   const res = await fetch(`data/dashboard.json?v=${Date.now()}`,{cache:"no-store"});
@@ -352,7 +353,8 @@ async function load(){
     schedule:d.schedule || [],
     source:d.source_status || {},
     updatedAt:d.updated_at,
-    isDefaultJack:true
+    isDefaultJack:true,
+    cutProjection:d.cut_projection || null
   });
   renderSinceLastVisit(d);
   captureDefaultVisitView();
@@ -380,20 +382,20 @@ function renderCutProjection(current, projection){
   const needed=document.getElementById("needed-average");
   const diff=current.pins_from_cut;
   const neededValue=current.needed_average;
-  const isPlaceholder=projection.status !== "official";
+  const scoreIsProjected=projection.score_official !== true;
 
-  fc.textContent=diff == null ? "Pending" : `${isPlaceholder ? "≈ " : ""}${diff > 0 ? "+" : ""}${diff}`;
+  fc.textContent=diff == null ? "Pending" : `${scoreIsProjected ? "≈ " : ""}${diff > 0 ? "+" : ""}${diff}`;
   fc.className=diff == null ? "" : diff >= 0 ? "positive" : "negative";
-  needed.textContent=neededValue == null ? "Pending" : `${isPlaceholder ? "≈ " : ""}${Number(neededValue).toFixed(1)}`;
+  needed.textContent=neededValue == null ? "Pending" : `${scoreIsProjected ? "≈ " : ""}${Number(neededValue).toFixed(2)}`;
 
-  setText("cut-status-badge", projection.label || (isPlaceholder ? "Placeholder estimate" : "Official cut"));
-  setText("cut-status-title", projection.title || (isPlaceholder ? "There is no official cut yet" : "Official advancement cut"));
-  setText("cut-status-explanation", projection.explanation || "The cut is established only after all U18 Boys complete 16 qualifying games.");
-  setText("cut-gap-basis", projection.gap_basis || "Temporary comparison only");
-  setText("needed-average-basis", projection.needed_average_basis || "Temporary target only");
+  setText("cut-status-badge", projection.label || (projection.position_confirmed ? `Top ${projection.advancing_place} confirmed` : "Cut update pending"));
+  setText("cut-status-title", projection.title || (projection.position_confirmed ? `The advancement cut is confirmed at ${projection.advancing_place}st place` : "Advancement cut update pending"));
+  setText("cut-status-explanation", projection.explanation || "The advancing position and live score pace are temporarily unavailable.");
+  setText("cut-gap-basis", projection.gap_basis || "Current score-line comparison unavailable");
+  setText("needed-average-basis", projection.needed_average_basis || "Current-pace target unavailable");
 
   const badge=document.getElementById("cut-status-badge");
-  badge.className=`cut-status-badge ${isPlaceholder ? "placeholder" : "official-cut"}`;
+  badge.className=`cut-status-badge ${projection.position_confirmed ? "confirmed-position" : "placeholder"}`;
 }
 
 function renderSourceStatus(source, fallbackCheckedAt){
@@ -436,6 +438,77 @@ function latestPostedBlock(blocks=[]){
   return [...blocks].reverse().find(block=>blockHasPostedData(block)) || null;
 }
 
+function buildRemainingCutPlan(current={},projection={}){
+  const games=Math.max(0,Number(current.games_complete || 0));
+  const total=Number(current.total);
+  const target=Number(projection.projected_final_total);
+  if(!Number.isFinite(total) || !Number.isFinite(target) || games>=16) return null;
+  const remainingGames=16-games;
+  const remainingPins=Math.max(0,target-total);
+  const remainingBlocks=Math.ceil(remainingGames/4);
+  const base=Math.floor(remainingPins/remainingBlocks);
+  const extra=remainingPins%remainingBlocks;
+  const blockTargets=Array.from({length:remainingBlocks},(_,index)=>base+(index<extra?1:0));
+  return {
+    remainingGames,
+    remainingPins,
+    remainingBlocks,
+    blockTargets,
+    neededAverage:remainingGames ? remainingPins/remainingGames : null
+  };
+}
+
+function remainingBlockLabels(schedule=[],gamesComplete=0,count=0,isDefaultJack=false){
+  if(isDefaultJack){
+    const firstRound=Math.floor(gamesComplete/4);
+    return schedule.slice(firstRound,firstRound+count).map(event=>event?.start ? weekdayFmt.format(new Date(event.start)) : null)
+      .map((label,index)=>label || `Block ${index+1}`);
+  }
+  return Array.from({length:count},(_,index)=>index===0 ? "Next block" : index===count-1 ? "Final block" : `Block ${index+1}`);
+}
+
+function renderFamilyCutTarget({name,current={},projection={},schedule=[],isDefaultJack=false}){
+  const card=document.getElementById("family-cut-card");
+  if(!card) return;
+  const advancingPlace=Number(projection.advancing_place);
+  const plan=buildRemainingCutPlan(current,projection);
+  const hasCutContext=projection.position_confirmed===true && Number.isFinite(advancingPlace) && plan;
+  card.hidden=!hasCutContext;
+  if(!hasCutContext) return;
+
+  const firstName=String(name || "Bowler").split(" ")[0];
+  const labels=remainingBlockLabels(schedule,Number(current.games_complete || 0),plan.remainingBlocks,isDefaultJack);
+  setText("family-cut-badge",`Top ${advancingPlace} confirmed`);
+  setText("family-cut-title",plan.remainingBlocks===2
+    ? `${firstName} needs ${plan.remainingPins.toLocaleString()} pins over ${labels[0]} and ${labels[1]} at the current pace`
+    : `${firstName} needs ${plan.remainingPins.toLocaleString()} pins over ${plan.remainingGames} remaining games at the current pace`);
+  setText("family-cut-summary",`The live ${advancingPlace}st-place pace projects to ${Number(projection.projected_final_total).toLocaleString()} pins after 16 games. The final score line can still move.`);
+
+  const metrics=document.getElementById("family-cut-metrics");
+  metrics.innerHTML=plan.blockTargets.map((target,index)=>`
+    <div>
+      <span>${escapeHtml(labels[index] || `Block ${index+1}`)} target</span>
+      <strong>${target.toLocaleString()}</strong>
+      <small>${(target/Math.min(4,plan.remainingGames-index*4)).toFixed(2)} average</small>
+    </div>`).join("")+`
+    <div>
+      <span>Average needed</span>
+      <strong>${plan.neededAverage.toFixed(2)}</strong>
+      <small>Across ${plan.remainingGames} games</small>
+    </div>`;
+
+  const scenarios=document.getElementById("family-cut-scenarios");
+  if(plan.remainingBlocks===2){
+    const balanced=plan.blockTargets[0];
+    const firstScores=[balanced-50,balanced-25,balanced,balanced+25,balanced+50].filter(score=>score>=0 && score<=plan.remainingPins);
+    scenarios.hidden=false;
+    scenarios.innerHTML=`<p>If ${escapeHtml(labels[0])}'s total changes, ${escapeHtml(labels[1])}'s target changes with it:</p><div>${firstScores.map(score=>`<span><strong>${escapeHtml(labels[0])} ${score}</strong><small>${escapeHtml(labels[1])} ${plan.remainingPins-score}</small></span>`).join("")}</div>`;
+  }else{
+    scenarios.hidden=true;
+    scenarios.innerHTML="";
+  }
+}
+
 function updateFamilyCountdown(schedule=[],isDefaultJack=false){
   if(familyCountdownTimer) clearInterval(familyCountdownTimer);
   const card=document.getElementById("family-next-card");
@@ -464,7 +537,7 @@ function updateFamilyCountdown(schedule=[],isDefaultJack=false){
   familyCountdownTimer=setInterval(update,30000);
 }
 
-function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedule=[],source={},updatedAt,isDefaultJack=false}){
+function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedule=[],source={},updatedAt,isDefaultJack=false,cutProjection=null}){
   const games=Math.max(0,Number(current.games_complete || 0));
   const total=current.total == null ? Number.NaN : Number(current.total);
   const average=current.average == null ? Number.NaN : Number(current.average);
@@ -489,7 +562,7 @@ function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedul
     ? `${firstName} is ${headlinePosition} after ${games} ${games===1 ? "game" : "games"}`
     : `${possessiveName(name || "Bowler")} scores have not been posted yet`);
   setText("family-summary",hasResults
-    ? `${total.toLocaleString()} total pins with a ${average.toFixed(2)} average. ${games<16 ? `${16-games} qualifying ${16-games===1 ? "game" : "games"} remain.` : "All 16 qualifying games are complete."}`
+    ? `${total.toLocaleString()} total pins with a ${average.toFixed(2)} average. ${games<16 ? `${16-games} qualifying ${16-games===1 ? "game" : "games"} remain.` : "All 16 qualifying games are complete."}${cutProjection?.position_confirmed ? ` The top ${cutProjection.advancing_place} advance.` : ""}`
     : "This page will update when Bowl.com publishes the official scores.");
   setText("family-position",position);
   setText("family-total",hasResults ? total.toLocaleString() : "—");
@@ -532,6 +605,7 @@ function renderFamilyDashboard({name,year,current={},fieldSize,blocks=[],schedul
   ].filter(Boolean).join(" · "));
   const sourceLink=document.getElementById("family-source-link");
   sourceLink.href=source.source_url || sourceLink.href;
+  renderFamilyCutTarget({name,current,projection:cutProjection || {},schedule,isDefaultJack});
   updateFamilyCountdown(schedule,isDefaultJack);
 }
 
@@ -619,18 +693,32 @@ function selectedCutContext(profile,year,projection){
   const total=Number(profile.total);
   const remaining=16-games;
   const name=profile.name;
+  const current={
+    ...profile,
+    field_size:profile.field_size,
+    pins_from_cut:total-currentScore,
+    needed_average:remaining>0 ? Math.max(0,(finalTarget-total)/remaining) : null
+  };
+  const plan=buildRemainingCutPlan(current,projection);
   return {
-    current:{
-      ...profile,
-      field_size:profile.field_size,
-      pins_from_cut:total-currentScore,
-      needed_average:remaining>0 ? Math.max(0,(finalTarget-total)/remaining) : null
-    },
+    current,
     projection:{
       ...projection,
-      explanation:`The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. These values compare ${name} with the current report at the provisional 1-in-7 advancing position and project that pace over 16 games.`,
-      gap_basis:`Temporary comparison to place ${projection.advancing_place} in the latest ${games}-game report containing ${name}`,
-      needed_average_basis:`Temporary 16-game pace projection of ${finalTarget} pins`
+      status:"confirmed_position",
+      position_confirmed:true,
+      score_official:false,
+      label:`Top ${projection.advancing_place} confirmed`,
+      title:`The advancement cut is confirmed at ${projection.advancing_place}st place`,
+      explanation:`The number of U18 Boys advancing after 16 games is confirmed at ${projection.advancing_place}. The final score needed is not known until Round 4 is complete, so this view projects from the live ${projection.advancing_place}st-place pace.`,
+      gap_basis:`${name} is compared with the current ${projection.advancing_place}st-place score of ${currentScore} after ${games} games`,
+      needed_average_basis:`Current-pace target of ${finalTarget} pins; ${name} needs ${plan?.remainingPins ?? 0} over ${plan?.remainingGames ?? 0} games`,
+      remaining_plan:plan ? {
+        remaining_games:plan.remainingGames,
+        remaining_pins:plan.remainingPins,
+        remaining_blocks:plan.remainingBlocks,
+        block_targets:plan.blockTargets,
+        needed_average:plan.neededAverage
+      } : null
     }
   };
 }
@@ -805,11 +893,12 @@ function applySelectedBowlerContext(year,yearData,profile){
     schedule:isDefaultJack ? dashboardData.schedule || [] : [],
     source:familySource,
     updatedAt:yearData.generated_at,
-    isDefaultJack
+    isDefaultJack,
+    cutProjection:cutContext?.projection || null
   });
 
   setText("progress-description",cutContext
-    ? `${possessiveName(profile.name)} tournament average compared with the temporary projected cut pace. Both values use pins per game.`
+    ? `${possessiveName(profile.name)} tournament average compared with the projected score pace for the confirmed top-${cutContext.projection.advancing_place} cut. Both values use pins per game.`
     : `${possessiveName(profile.name)} cumulative tournament average and position after each available qualifying block.`);
   setText("progress-bowler-name",profile.name.split(" ")[0]);
   document.getElementById("progress-cut-legend").hidden=!cutContext;

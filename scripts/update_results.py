@@ -32,6 +32,7 @@ DATA = Path(__file__).resolve().parents[1] / "data" / "dashboard.json"
 EXPLORER_DATA = Path(__file__).resolve().parents[1] / "data" / "bowlers.json"
 REGISTRATION_DATA = Path(__file__).resolve().parents[1] / "data" / "registration.json"
 HISTORY_LIMIT = 96
+CONFIRMED_U18B_ADVANCING_PLACE = 131
 DIVISIONS = {
     "U12B": "U12 Boys",
     "U12G": "U12 Girls",
@@ -604,19 +605,42 @@ def update_bowler_explorer_data(
 
 
 def provisional_cut(latest: Report) -> dict | None:
-    """Return a clearly labeled current-pace comparison, never an official cut."""
-    field_size = len({row["usbc_id"] for row in latest.rows})
-    if not field_size:
+    """Return the live score line at the confirmed U18 Boys advancing place."""
+    published_bowlers = len({row["usbc_id"] for row in latest.rows})
+    if not published_bowlers:
         return None
-    advancing_place = math.ceil(field_size / 7)
+    advancing_place = CONFIRMED_U18B_ADVANCING_PLACE
+    if published_bowlers < advancing_place:
+        return None
     ordered = sorted(latest.rows, key=lambda row: (-row["grand_total"], row["name"]))
     cut_row = ordered[min(advancing_place - 1, len(ordered) - 1)]
     pace_average = cut_row["grand_total"] / cut_row["games_complete"]
     return {
         "advancing_place": advancing_place,
+        "position_confirmed": True,
+        "score_official": False,
         "current_score": cut_row["grand_total"],
         "projected_final_total": round(pace_average * 16),
         "games_basis": cut_row["games_complete"],
+        "published_bowlers": published_bowlers,
+    }
+
+
+def remaining_cut_plan(current_total: int, games_complete: int, projected_total: int) -> dict:
+    """Build an even, integer-pin plan for the qualifying blocks still to bowl."""
+    remaining_games = max(0, 16 - games_complete)
+    remaining_pins = max(0, projected_total - current_total)
+    remaining_blocks = math.ceil(remaining_games / 4) if remaining_games else 0
+    block_targets: list[int] = []
+    if remaining_blocks:
+        base, extra = divmod(remaining_pins, remaining_blocks)
+        block_targets = [base + (1 if index < extra else 0) for index in range(remaining_blocks)]
+    return {
+        "remaining_games": remaining_games,
+        "remaining_pins": remaining_pins,
+        "remaining_blocks": remaining_blocks,
+        "block_targets": block_targets,
+        "needed_average": round(remaining_pins / remaining_games, 2) if remaining_games else None,
     }
 
 
@@ -728,32 +752,42 @@ def update_dashboard(data: dict, reports: list[Report], checked_at: datetime) ->
 
     # Compare like with like if a newer round is live before Jack bowls it.
     cut = provisional_cut(jack_report)
-    remaining = max(0, 16 - jack_latest["games_complete"])
+    plan = None
     if cut:
-        current["pins_from_cut"] = jack_latest["grand_total"] - cut["current_score"]
-        current["needed_average"] = (
-            round((cut["projected_final_total"] - jack_latest["grand_total"]) / remaining, 1)
-            if remaining
-            else None
+        plan = remaining_cut_plan(
+            jack_latest["grand_total"],
+            jack_latest["games_complete"],
+            cut["projected_final_total"],
         )
+        current["pins_from_cut"] = jack_latest["grand_total"] - cut["current_score"]
+        current["needed_average"] = plan["needed_average"]
+        current["projected_cut_average"] = round(cut["projected_final_total"] / 16, 2)
+    else:
+        current["pins_from_cut"] = None
+        current["needed_average"] = None
+        current["projected_cut_average"] = None
+    current.pop("target_final_average", None)
     data["cut_projection"] = {
-        "status": "placeholder",
+        "status": "confirmed_position",
         "official": False,
-        "label": "Current-pace estimate",
-        "title": "There is no official cut yet",
-        "explanation": "The official U18 Boys first cut is set only after every competitor completes all 16 qualifying games. These values compare Jack with the current report at the provisional 1-in-7 advancing position and project that pace over 16 games.",
+        "position_confirmed": True,
+        "score_official": False,
+        "label": "Top 131 confirmed",
+        "title": "The advancement cut is confirmed at 131st place",
+        "explanation": "The number of U18 Boys advancing after 16 qualifying games is confirmed at 131. The final score needed is not known until Round 4 is complete, so the dashboard projects that score from the live 131st-place pace.",
         "gap_basis": (
-            f"Temporary comparison to place {cut['advancing_place']} in the latest {jack_report.round_number * 4}-game report containing Jack"
+            f"Jack is compared with the current {cut['advancing_place']}st-place score of {cut['current_score']} after {jack_report.round_number * 4} games"
             if cut
-            else "Temporary comparison unavailable"
+            else "Current 131st-place comparison unavailable"
         ),
         "needed_average_basis": (
-            f"Temporary 16-game pace projection of {cut['projected_final_total']} pins"
+            f"Current-pace target of {cut['projected_final_total']} pins; Jack needs {plan['remaining_pins']} over {plan['remaining_games']} games"
             if cut
-            else "Temporary projection unavailable"
+            else "Current-pace target unavailable"
         ),
-        "warning": "This is a planning estimate, not the official advancement cut.",
+        "warning": "The top-131 position is confirmed. The score needed to hold 131st remains a live planning estimate until qualifying ends.",
         **(cut or {}),
+        **({"remaining_plan": plan} if plan else {}),
     }
 
     data["alabama_bowlers"] = build_alabama_profiles(reports)

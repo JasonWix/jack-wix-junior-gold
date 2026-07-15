@@ -138,11 +138,8 @@ class ParserTests(unittest.TestCase):
         self.assertEqual([item["games_complete"] for item in dashboard["history"]], [4, 8])
         self.assertEqual(dashboard["history"][-1]["position"], 200)
         self.assertEqual(dashboard["history"][-1]["source_url"], "https://example.test/r2.pdf?v=new")
-        self.assertAlmostEqual(
-            dashboard["history"][-1]["cut_pace_average"],
-            dashboard["history"][-1]["projected_cut_total"] / 16,
-            places=2,
-        )
+        self.assertIsNone(dashboard["history"][-1]["cut_pace_average"])
+        self.assertIsNone(dashboard["history"][-1]["projected_cut_total"])
 
     def test_source_freshness_uses_newest_timestamp_not_highest_round(self):
         first_rows = MODULE.parse_standings(ROUND_ONE, 1)
@@ -182,6 +179,36 @@ class ParserTests(unittest.TestCase):
             dashboard["source_status"]["source_url"],
             "https://example.test/r1.pdf?v=new",
         )
+
+    def test_cut_uses_confirmed_131st_place_and_builds_two_day_plan(self):
+        rows = [
+            {
+                "usbc_id": f"22-{index:05d}",
+                "name": f"Bowler {index:03d}",
+                "grand_total": 2000 - index,
+                "games_complete": 8,
+            }
+            for index in range(140)
+        ]
+        report = MODULE.Report(
+            2,
+            "https://example.test/r2.pdf",
+            ROUND_TWO,
+            MODULE.parse_source_updated_at(ROUND_TWO),
+            rows,
+        )
+
+        cut = MODULE.provisional_cut(report)
+        plan = MODULE.remaining_cut_plan(1464, 8, 3164)
+
+        self.assertEqual(cut["advancing_place"], 131)
+        self.assertTrue(cut["position_confirmed"])
+        self.assertFalse(cut["score_official"])
+        self.assertEqual(cut["current_score"], 1870)
+        self.assertEqual(cut["projected_final_total"], 3740)
+        self.assertEqual(plan["remaining_pins"], 1700)
+        self.assertEqual(plan["block_targets"], [850, 850])
+        self.assertEqual(plan["needed_average"], 212.5)
 
     def test_archived_2025_comparison_is_internally_consistent(self):
         data = json.loads(DATA.read_text(encoding="utf-8"))

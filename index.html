@@ -99,7 +99,7 @@
       </div>
     </section>
 
-    <section class="family-now-grid" aria-label="Latest scores and upcoming schedule">
+    <section class="family-now-grid" aria-label="Latest scores, upcoming schedule, and advancement target">
       <article id="family-latest-card" class="family-now-card family-latest-card">
         <p class="family-card-kicker">Latest scores</p>
         <h2 id="family-latest-round">Waiting for posted scores</h2>
@@ -113,6 +113,19 @@
         <h2 id="family-next-title">Checking Jack's schedule…</h2>
         <p id="family-next-detail" class="family-card-note"></p>
         <div id="family-countdown" class="family-countdown" aria-live="off">--d --h --m</div>
+      </article>
+
+      <article id="family-cut-card" class="family-now-card family-cut-card" hidden>
+        <div class="family-cut-heading">
+          <div>
+            <p class="family-card-kicker">Path to advancement</p>
+            <h2 id="family-cut-title">Calculating the top-131 target…</h2>
+          </div>
+          <span id="family-cut-badge" class="family-cut-badge">Top 131 confirmed</span>
+        </div>
+        <p id="family-cut-summary" class="family-card-note"></p>
+        <div id="family-cut-metrics" class="family-cut-metrics" aria-label="Remaining qualifying targets"></div>
+        <div id="family-cut-scenarios" class="family-cut-scenarios" hidden></div>
       </article>
     </section>
 
@@ -342,14 +355,14 @@
             <strong id="games-complete">—</strong>
           </article>
           <article class="metric-card estimate-metric">
-            <span>Estimated cut gap*</span>
+            <span>Gap to current 131st-place line*</span>
             <strong id="from-cut">—</strong>
-            <small>Planning estimate, not official</small>
+            <small>Top 131 confirmed; score line projected</small>
           </article>
           <article class="metric-card estimate-metric">
-            <span>Estimated avg. needed*</span>
+            <span>Average needed at current pace*</span>
             <strong id="needed-average">—</strong>
-            <small>Planning estimate, not official</small>
+            <small>Across the remaining qualifying games</small>
           </article>
         </section>
       </div>
@@ -411,7 +424,7 @@
         <div class="chart-heading">
           <div>
             <h3>Cumulative average by completed block</h3>
-            <p id="progress-description">Jack's tournament average compared with the temporary projected cut pace. Both values use pins per game.</p>
+            <p id="progress-description">Jack's tournament average compared with the projected score pace for the confirmed top-131 cut. Both values use pins per game.</p>
           </div>
           <div class="chart-legend" aria-label="Chart legend">
             <span><i class="legend-swatch jack-series"></i><span id="progress-bowler-name">Jack</span></span>
@@ -432,16 +445,16 @@
     <details id="section-cut-status" class="dashboard-section cut-status-panel">
       <summary class="section-summary">
         <div class="cut-status-heading">
-          <span id="cut-status-badge" class="cut-status-badge">Placeholder estimate</span>
+          <span id="cut-status-badge" class="cut-status-badge confirmed-position">Top 131 confirmed</span>
           <div>
             <p class="label">Advancement cut status</p>
-            <h2 id="cut-status-title">There is no official cut yet</h2>
+            <h2 id="cut-status-title">The advancement cut is confirmed at 131st place</h2>
           </div>
         </div>
         <span class="section-toggle" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-        <p id="cut-status-explanation">The official U18 Boys first cut is not established until all competitors complete 16 qualifying games.</p>
+        <p id="cut-status-explanation">The number of advancing U18 Boys is confirmed at 131. The final qualifying score needed to hold that position remains live until Round 4 is complete.</p>
         <div class="cut-method-grid">
           <div>
             <span>Current cut-gap basis</span>
@@ -575,7 +588,7 @@
         <span class="section-toggle" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-        <p>Standings and game scores come from the official Bowl.com U18 Boys reports. Position can change as additional squads finish. There is no official first cut until all bowlers complete 16 qualifying games. Any cut gap or needed-average value marked with an asterisk is a temporary planning estimate, not an official advancement target.</p>
+        <p>Standings and game scores come from the official Bowl.com U18 Boys reports. The advancement position is confirmed at 131st place. Position and the score needed to hold 131st can change as additional rounds finish, so values marked with an asterisk use the current 131st-place pace as a planning target.</p>
         <p id="dashboard-guide-context">The year-over-year section compares Jack's final 2025 results with 2026 only at matching four-game checkpoints. The progress chart uses one final official snapshot for each completed 2026 block. “Since your last visit” and favorite bowlers are stored only in the current browser. All schedule and countdown times use Central Time.</p>
       </div>
     </details>

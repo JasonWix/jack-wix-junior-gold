@@ -4,7 +4,7 @@ A mobile-friendly GitHub Pages dashboard for Junior Gold families. The 2026 expl
 
 ## Family-first home view
 
-The default page is designed for relatives and friends who do not need to understand tournament terminology. It immediately shows Jack's current position and field size, total pins, average, qualifying progress, latest game scores, next block, countdown, and official-results freshness. The Bowler Explorer, year comparison, cut analysis, complete schedule, state leaderboard, equipment, and display settings remain available inside one collapsed **More tournament details** area.
+The default page is designed for relatives and friends who do not need to understand tournament terminology. It immediately shows Jack's current position and field size, total pins, average, qualifying progress, latest game scores, next block, countdown, official-results freshness, and an even-block plan for reaching the confirmed top-131 advancement line. The Bowler Explorer, year comparison, detailed cut analysis, complete schedule, state leaderboard, equipment, and display settings remain available inside one collapsed **More tournament details** area.
 
 ## Publish
 
@@ -22,7 +22,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 - Uses the eight official `Advancers Report` participant PDFs as the complete searchable registration index, then enriches matching profiles with published qualifying scores and standings.
 - Searches for `Jack Wix`.
 - Builds `data/bowlers.json` so any 2026 U12/U14/U16/U18 boys or girls participant can be searched by name or hometown, or browsed by division and state.
-- Promotes the selected explorer profile into the active dashboard context so headings, statistics, scorecards, charts, cut estimates, source links, comparison copy, and sharing use that bowler's name and results.
+- Promotes the selected explorer profile into the active dashboard context so headings, statistics, scorecards, charts, top-131 pace comparisons, source links, comparison copy, and sharing use that bowler's name and results.
 - Keeps all 1,341 final 2025 U18 Boys profiles in a fixed archive while refreshing the published 2026 field automatically.
 - Updates game scores, totals, average and target pace.
 - Preserves a bounded history of meaningful official result changes for progress comparisons.
@@ -35,7 +35,7 @@ The updater uses the tournament-specific schedule documented below. GitHub may d
 
 ## Selected bowler and display controls
 
-Selecting a 2025 or 2026 profile updates the family summary and the full detailed dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, provisional cut comparison, archived comparison, and state-leaderboard baseline. Jack-only sections—personal schedule, equipment, and last-visit summary—are disabled automatically when another bowler is active.
+Selecting a 2025 or 2026 profile updates the family summary and the full detailed dashboard, not only the explorer card. Data-compatible sections use the selected bowler's name, year, squad, hometown, standings, scores, progress, confirmed-position cut comparison, archived comparison, and state-leaderboard baseline. Jack-only sections—personal schedule, equipment, and last-visit summary—are disabled automatically when another bowler is active.
 
 The family summary stays visible. **More tournament details** and every section inside it are collapsed on each page load. Within that area, **Arrange and choose sections** lets each visitor show, hide, and drag detailed sections into a preferred order. Arrow buttons provide the same ordering control on phones and keyboards. Order and visibility choices are saved in that browser; sections without data for the active selection remain disabled and explain why.
 
@@ -119,8 +119,9 @@ Jack finished 2025 qualifying with a 164.44 average, tied for 1009th in the 1,34
 
 ## Latest dashboard clarification
 
-- The cut-gap and needed-average tiles are explicitly labeled as placeholders, not official projections.
-- A cut explanation panel states that the first official cut is not set until all U18 Boys complete 16 qualifying games.
+- The advancing position is fixed at the confirmed U18 Boys top-131 cut.
+- The score needed to hold 131st remains explicitly labeled as a current-pace projection until all 16 qualifying games are complete.
+- A family-facing target card turns the projected remaining pins into even four-game block targets and shows how the final-day requirement changes when the next block finishes above or below that split.
 - The top of the page links to Jack Wix Bowling on Facebook.
 - The state leaderboard follows the Bowler Explorer's selected year and state, and labels live 2026 fields separately from final 2025 fields.
 - Jack's Columbia 300 White Dot is identified as the white / Diamond version and uses a matching white-ball image.
