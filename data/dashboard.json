@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-15T17:03:30.440651-05:00",
+  "updated_at": "2026-07-15T18:07:44.864927-05:00",
   "current": {
     "position": 358,
     "total": 1464,
@@ -855,12 +855,12 @@
     }
   },
   "source_status": {
-    "status": "current",
+    "status": "delayed",
     "last_updated_at": "2026-07-15T14:55:00-05:00",
-    "last_checked_at": "2026-07-15T17:03:30.440651-05:00",
+    "last_checked_at": "2026-07-15T18:07:44.864927-05:00",
     "report": "Qualifying Round 3",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%203_U18Boys.pdf?v=new",
-    "age_minutes": 128,
+    "age_minutes": 192,
     "valid_reports": [
       1,
       2,
