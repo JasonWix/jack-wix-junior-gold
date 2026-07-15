@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-15T09:23:51.750591-05:00",
+  "updated_at": "2026-07-15T11:06:56.978161-05:00",
   "current": {
     "position": 358,
     "total": 1464,
@@ -254,13 +254,13 @@
   },
   "alabama_bowlers": [
     {
-      "rank": 7,
+      "rank": 6,
       "tied": false,
       "name": "Braden Mauro",
       "hometown": "Birmingham, AL",
-      "games_complete": 8,
-      "total": 1758,
-      "average": 219.75,
+      "games_complete": 12,
+      "total": 2609,
+      "average": 217.42,
       "blocks": [
         {
           "round": 1,
@@ -279,6 +279,16 @@
             199,
             208,
             230
+          ],
+          "total": 851
+        },
+        {
+          "round": 3,
+          "games": [
+            224,
+            199,
+            182,
+            246
           ],
           "total": 851
         }
@@ -316,6 +326,47 @@
       ]
     },
     {
+      "rank": 142,
+      "tied": false,
+      "name": "Will Mooneyhan",
+      "hometown": "Helena, AL",
+      "games_complete": 12,
+      "total": 2378,
+      "average": 198.17,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            173,
+            156,
+            202,
+            202
+          ],
+          "total": 733
+        },
+        {
+          "round": 2,
+          "games": [
+            195,
+            213,
+            219,
+            170
+          ],
+          "total": 797
+        },
+        {
+          "round": 3,
+          "games": [
+            222,
+            248,
+            183,
+            195
+          ],
+          "total": 848
+        }
+      ]
+    },
+    {
       "rank": 177,
       "tied": true,
       "name": "Parker Young",
@@ -347,44 +398,13 @@
       ]
     },
     {
-      "rank": 215,
-      "tied": true,
-      "name": "Will Mooneyhan",
-      "hometown": "Helena, AL",
-      "games_complete": 8,
-      "total": 1530,
-      "average": 191.25,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            173,
-            156,
-            202,
-            202
-          ],
-          "total": 733
-        },
-        {
-          "round": 2,
-          "games": [
-            195,
-            213,
-            219,
-            170
-          ],
-          "total": 797
-        }
-      ]
-    },
-    {
-      "rank": 320,
-      "tied": true,
+      "rank": 184,
+      "tied": false,
       "name": "Braxton Nguyen",
       "hometown": "Birmingham, AL",
-      "games_complete": 8,
-      "total": 1479,
-      "average": 184.88,
+      "games_complete": 12,
+      "total": 2349,
+      "average": 195.75,
       "blocks": [
         {
           "round": 1,
@@ -405,6 +425,16 @@
             211
           ],
           "total": 723
+        },
+        {
+          "round": 3,
+          "games": [
+            201,
+            197,
+            226,
+            246
+          ],
+          "total": 870
         }
       ]
     },
@@ -471,6 +501,47 @@
       ]
     },
     {
+      "rank": 419,
+      "tied": true,
+      "name": "Noah J Loney",
+      "hometown": "Eva, AL",
+      "games_complete": 12,
+      "total": 2236,
+      "average": 186.33,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            174,
+            157,
+            174,
+            161
+          ],
+          "total": 666
+        },
+        {
+          "round": 2,
+          "games": [
+            207,
+            166,
+            179,
+            189
+          ],
+          "total": 741
+        },
+        {
+          "round": 3,
+          "games": [
+            241,
+            188,
+            206,
+            194
+          ],
+          "total": 829
+        }
+      ]
+    },
+    {
       "rank": 428,
       "tied": true,
       "name": "Richard D",
@@ -498,99 +569,6 @@
             179
           ],
           "total": 756
-        }
-      ]
-    },
-    {
-      "rank": 510,
-      "tied": true,
-      "name": "Noah J Loney",
-      "hometown": "Eva, AL",
-      "games_complete": 8,
-      "total": 1407,
-      "average": 175.88,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            174,
-            157,
-            174,
-            161
-          ],
-          "total": 666
-        },
-        {
-          "round": 2,
-          "games": [
-            207,
-            166,
-            179,
-            189
-          ],
-          "total": 741
-        }
-      ]
-    },
-    {
-      "rank": 526,
-      "tied": true,
-      "name": "Michael Mcclure",
-      "hometown": "Birmingham, AL",
-      "games_complete": 8,
-      "total": 1398,
-      "average": 174.75,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            160,
-            154,
-            178,
-            159
-          ],
-          "total": 651
-        },
-        {
-          "round": 2,
-          "games": [
-            187,
-            190,
-            212,
-            158
-          ],
-          "total": 747
-        }
-      ]
-    },
-    {
-      "rank": 579,
-      "tied": true,
-      "name": "Jacob Cherry",
-      "hometown": "Birmingham, AL",
-      "games_complete": 8,
-      "total": 1369,
-      "average": 171.13,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            187,
-            134,
-            176,
-            175
-          ],
-          "total": 672
-        },
-        {
-          "round": 2,
-          "games": [
-            216,
-            180,
-            164,
-            137
-          ],
-          "total": 697
         }
       ]
     },
@@ -657,13 +635,95 @@
       ]
     },
     {
-      "rank": 773,
-      "tied": true,
+      "rank": 710,
+      "tied": false,
+      "name": "Michael Mcclure",
+      "hometown": "Birmingham, AL",
+      "games_complete": 12,
+      "total": 2094,
+      "average": 174.5,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            160,
+            154,
+            178,
+            159
+          ],
+          "total": 651
+        },
+        {
+          "round": 2,
+          "games": [
+            187,
+            190,
+            212,
+            158
+          ],
+          "total": 747
+        },
+        {
+          "round": 3,
+          "games": [
+            215,
+            184,
+            157,
+            140
+          ],
+          "total": 696
+        }
+      ]
+    },
+    {
+      "rank": 716,
+      "tied": false,
+      "name": "Jacob Cherry",
+      "hometown": "Birmingham, AL",
+      "games_complete": 12,
+      "total": 2084,
+      "average": 173.67,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            187,
+            134,
+            176,
+            175
+          ],
+          "total": 672
+        },
+        {
+          "round": 2,
+          "games": [
+            216,
+            180,
+            164,
+            137
+          ],
+          "total": 697
+        },
+        {
+          "round": 3,
+          "games": [
+            182,
+            169,
+            199,
+            165
+          ],
+          "total": 715
+        }
+      ]
+    },
+    {
+      "rank": 829,
+      "tied": false,
       "name": "Donavan Ayers",
       "hometown": "Madison, AL",
-      "games_complete": 8,
-      "total": 1276,
-      "average": 159.5,
+      "games_complete": 12,
+      "total": 1992,
+      "average": 166.0,
       "blocks": [
         {
           "round": 1,
@@ -684,6 +744,16 @@
             122
           ],
           "total": 653
+        },
+        {
+          "round": 3,
+          "games": [
+            163,
+            156,
+            190,
+            207
+          ],
+          "total": 716
         }
       ]
     },
@@ -735,15 +805,16 @@
     }
   },
   "source_status": {
-    "status": "delayed",
-    "last_updated_at": "2026-07-14T23:23:00-05:00",
-    "last_checked_at": "2026-07-15T09:23:51.750591-05:00",
-    "report": "Qualifying Round 2",
-    "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%202_U18Boys.pdf?v=new",
-    "age_minutes": 600,
+    "status": "current",
+    "last_updated_at": "2026-07-15T10:02:00-05:00",
+    "last_checked_at": "2026-07-15T11:06:56.978161-05:00",
+    "report": "Qualifying Round 3",
+    "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%203_U18Boys.pdf?v=new",
+    "age_minutes": 64,
     "valid_reports": [
       1,
-      2
+      2,
+      3
     ]
   },
   "equipment": {
