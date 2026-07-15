@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-14T18:44:03.206487-05:00",
+  "updated_at": "2026-07-14T22:21:33.696014-05:00",
   "current": {
     "position": 477,
     "total": 706,
@@ -234,7 +234,7 @@
   },
   "alabama_bowlers": [
     {
-      "rank": 3,
+      "rank": 4,
       "tied": false,
       "name": "Braden Mauro",
       "hometown": "Birmingham, AL",
@@ -307,13 +307,13 @@
       ]
     },
     {
-      "rank": 197,
+      "rank": 199,
       "tied": true,
       "name": "Parker Young",
       "hometown": "Mobile, AL",
-      "games_complete": 4,
-      "total": 772,
-      "average": 193.0,
+      "games_complete": 8,
+      "total": 1554,
+      "average": 194.25,
       "blocks": [
         {
           "round": 1,
@@ -324,11 +324,21 @@
             168
           ],
           "total": 772
+        },
+        {
+          "round": 2,
+          "games": [
+            205,
+            223,
+            172,
+            182
+          ],
+          "total": 782
         }
       ]
     },
     {
-      "rank": 286,
+      "rank": 254,
       "tied": true,
       "name": "Will Mooneyhan",
       "hometown": "Helena, AL",
@@ -359,7 +369,7 @@
       ]
     },
     {
-      "rank": 454,
+      "rank": 392,
       "tied": true,
       "name": "Braxton Nguyen",
       "hometown": "Birmingham, AL",
@@ -411,13 +421,13 @@
       ]
     },
     {
-      "rank": 582,
+      "rank": 501,
       "tied": true,
-      "name": "Richard D",
+      "name": "Richard D Hoskinson",
       "hometown": "Northport, AL",
-      "games_complete": 4,
-      "total": 681,
-      "average": 170.25,
+      "games_complete": 8,
+      "total": 1437,
+      "average": 179.63,
       "blocks": [
         {
           "round": 1,
@@ -428,32 +438,21 @@
             172
           ],
           "total": 681
-        }
-      ]
-    },
-    {
-      "rank": 613,
-      "tied": true,
-      "name": "Sir Connor",
-      "hometown": "Phenix City, AL",
-      "games_complete": 4,
-      "total": 672,
-      "average": 168.0,
-      "blocks": [
+        },
         {
-          "round": 1,
+          "round": 2,
           "games": [
-            190,
-            171,
-            154,
-            157
+            179,
+            231,
+            167,
+            179
           ],
-          "total": 672
+          "total": 756
         }
       ]
     },
     {
-      "rank": 653,
+      "rank": 578,
       "tied": true,
       "name": "Noah J Loney",
       "hometown": "Eva, AL",
@@ -484,7 +483,7 @@
       ]
     },
     {
-      "rank": 672,
+      "rank": 593,
       "tied": true,
       "name": "Michael Mcclure",
       "hometown": "Birmingham, AL",
@@ -515,28 +514,7 @@
       ]
     },
     {
-      "rank": 679,
-      "tied": true,
-      "name": "James F Simpson",
-      "hometown": "Hartselle, AL",
-      "games_complete": 4,
-      "total": 654,
-      "average": 163.5,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            175,
-            168,
-            171,
-            140
-          ],
-          "total": 654
-        }
-      ]
-    },
-    {
-      "rank": 727,
+      "rank": 651,
       "tied": true,
       "name": "Jacob Cherry",
       "hometown": "Birmingham, AL",
@@ -567,13 +545,44 @@
       ]
     },
     {
-      "rank": 790,
+      "rank": 719,
+      "tied": true,
+      "name": "Sir Connor",
+      "hometown": "Phenix City, AL",
+      "games_complete": 8,
+      "total": 1330,
+      "average": 166.25,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            190,
+            171,
+            154,
+            157
+          ],
+          "total": 672
+        },
+        {
+          "round": 2,
+          "games": [
+            122,
+            172,
+            203,
+            161
+          ],
+          "total": 658
+        }
+      ]
+    },
+    {
+      "rank": 751,
       "tied": true,
       "name": "Ryan D Simpson",
       "hometown": "Hartselle, AL",
-      "games_complete": 4,
-      "total": 621,
-      "average": 155.25,
+      "games_complete": 8,
+      "total": 1316,
+      "average": 164.5,
       "blocks": [
         {
           "round": 1,
@@ -584,11 +593,21 @@
             183
           ],
           "total": 621
+        },
+        {
+          "round": 2,
+          "games": [
+            163,
+            191,
+            197,
+            144
+          ],
+          "total": 695
         }
       ]
     },
     {
-      "rank": 842,
+      "rank": 806,
       "tied": true,
       "name": "Donavan Ayers",
       "hometown": "Madison, AL",
@@ -617,6 +636,37 @@
           "total": 653
         }
       ]
+    },
+    {
+      "rank": 854,
+      "tied": false,
+      "name": "James F Simpson",
+      "hometown": "Hartselle, AL",
+      "games_complete": 8,
+      "total": 1224,
+      "average": 153.0,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            175,
+            168,
+            171,
+            140
+          ],
+          "total": 654
+        },
+        {
+          "round": 2,
+          "games": [
+            141,
+            141,
+            148,
+            140
+          ],
+          "total": 570
+        }
+      ]
     }
   ],
   "site": {
@@ -636,11 +686,11 @@
   },
   "source_status": {
     "status": "delayed",
-    "last_updated_at": "2026-07-14T14:07:00-05:00",
-    "last_checked_at": "2026-07-14T18:44:03.206487-05:00",
+    "last_updated_at": "2026-07-14T19:02:00-05:00",
+    "last_checked_at": "2026-07-14T22:21:33.696014-05:00",
     "report": "Qualifying Round 2",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%202_U18Boys.pdf?v=new",
-    "age_minutes": 277,
+    "age_minutes": 199,
     "valid_reports": [
       1,
       2
