@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-16T09:48:42.866019-05:00",
+  "updated_at": "2026-07-16T11:05:23.794883-05:00",
   "current": {
     "position": 480,
     "total": 2179,
@@ -371,13 +371,13 @@
       ]
     },
     {
-      "rank": 189,
-      "tied": true,
+      "rank": 201,
+      "tied": false,
       "name": "Parker Young",
       "hometown": "Mobile, AL",
-      "games_complete": 12,
-      "total": 2361,
-      "average": 196.75,
+      "games_complete": 16,
+      "total": 3154,
+      "average": 197.13,
       "blocks": [
         {
           "round": 1,
@@ -408,6 +408,16 @@
             213
           ],
           "total": 807
+        },
+        {
+          "round": 4,
+          "games": [
+            225,
+            197,
+            206,
+            165
+          ],
+          "total": 793
         }
       ]
     },
@@ -535,47 +545,6 @@
       ]
     },
     {
-      "rank": 366,
-      "tied": false,
-      "name": "Richard D",
-      "hometown": "Northport, AL",
-      "games_complete": 12,
-      "total": 2239,
-      "average": 186.58,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            183,
-            156,
-            170,
-            172
-          ],
-          "total": 681
-        },
-        {
-          "round": 2,
-          "games": [
-            179,
-            231,
-            167,
-            179
-          ],
-          "total": 756
-        },
-        {
-          "round": 3,
-          "games": [
-            172,
-            225,
-            204,
-            201
-          ],
-          "total": 802
-        }
-      ]
-    },
-    {
       "rank": 371,
       "tied": true,
       "name": "Noah J Loney",
@@ -654,6 +623,57 @@
             160
           ],
           "total": 715
+        }
+      ]
+    },
+    {
+      "rank": 506,
+      "tied": false,
+      "name": "Richard D Hoskinson",
+      "hometown": "Northport, AL",
+      "games_complete": 16,
+      "total": 2955,
+      "average": 184.69,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            183,
+            156,
+            170,
+            172
+          ],
+          "total": 681
+        },
+        {
+          "round": 2,
+          "games": [
+            179,
+            231,
+            167,
+            179
+          ],
+          "total": 756
+        },
+        {
+          "round": 3,
+          "games": [
+            172,
+            225,
+            204,
+            201
+          ],
+          "total": 802
+        },
+        {
+          "round": 4,
+          "games": [
+            203,
+            173,
+            162,
+            178
+          ],
+          "total": 716
         }
       ]
     },
@@ -740,88 +760,6 @@
       ]
     },
     {
-      "rank": 710,
-      "tied": true,
-      "name": "Sir Connor",
-      "hometown": "Phenix City, AL",
-      "games_complete": 12,
-      "total": 2032,
-      "average": 169.33,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            190,
-            171,
-            154,
-            157
-          ],
-          "total": 672
-        },
-        {
-          "round": 2,
-          "games": [
-            122,
-            172,
-            203,
-            161
-          ],
-          "total": 658
-        },
-        {
-          "round": 3,
-          "games": [
-            208,
-            145,
-            167,
-            182
-          ],
-          "total": 702
-        }
-      ]
-    },
-    {
-      "rank": 721,
-      "tied": true,
-      "name": "Ryan D Simpson",
-      "hometown": "Hartselle, AL",
-      "games_complete": 12,
-      "total": 2023,
-      "average": 168.58,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            157,
-            169,
-            112,
-            183
-          ],
-          "total": 621
-        },
-        {
-          "round": 2,
-          "games": [
-            163,
-            191,
-            197,
-            144
-          ],
-          "total": 695
-        },
-        {
-          "round": 3,
-          "games": [
-            176,
-            159,
-            205,
-            167
-          ],
-          "total": 707
-        }
-      ]
-    },
-    {
       "rank": 761,
       "tied": false,
       "name": "Donavan Ayers",
@@ -863,13 +801,115 @@
       ]
     },
     {
-      "rank": 808,
+      "rank": 814,
+      "tied": true,
+      "name": "Ryan D Simpson",
+      "hometown": "Hartselle, AL",
+      "games_complete": 16,
+      "total": 2703,
+      "average": 168.94,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            157,
+            169,
+            112,
+            183
+          ],
+          "total": 621
+        },
+        {
+          "round": 2,
+          "games": [
+            163,
+            191,
+            197,
+            144
+          ],
+          "total": 695
+        },
+        {
+          "round": 3,
+          "games": [
+            176,
+            159,
+            205,
+            167
+          ],
+          "total": 707
+        },
+        {
+          "round": 4,
+          "games": [
+            184,
+            140,
+            159,
+            197
+          ],
+          "total": 680
+        }
+      ]
+    },
+    {
+      "rank": 853,
+      "tied": false,
+      "name": "Sir Connor",
+      "hometown": "Phenix City, AL",
+      "games_complete": 16,
+      "total": 2639,
+      "average": 164.94,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            190,
+            171,
+            154,
+            157
+          ],
+          "total": 672
+        },
+        {
+          "round": 2,
+          "games": [
+            122,
+            172,
+            203,
+            161
+          ],
+          "total": 658
+        },
+        {
+          "round": 3,
+          "games": [
+            208,
+            145,
+            167,
+            182
+          ],
+          "total": 702
+        },
+        {
+          "round": 4,
+          "games": [
+            118,
+            176,
+            137,
+            176
+          ],
+          "total": 607
+        }
+      ]
+    },
+    {
+      "rank": 868,
       "tied": true,
       "name": "James F Simpson",
       "hometown": "Hartselle, AL",
-      "games_complete": 12,
-      "total": 1934,
-      "average": 161.17,
+      "games_complete": 16,
+      "total": 2603,
+      "average": 162.69,
       "blocks": [
         {
           "round": 1,
@@ -900,6 +940,16 @@
             190
           ],
           "total": 710
+        },
+        {
+          "round": 4,
+          "games": [
+            148,
+            205,
+            161,
+            155
+          ],
+          "total": 669
         }
       ]
     }
@@ -920,16 +970,17 @@
     }
   },
   "source_status": {
-    "status": "delayed",
-    "last_updated_at": "2026-07-15T23:21:00-05:00",
-    "last_checked_at": "2026-07-16T09:48:42.866019-05:00",
-    "report": "Qualifying Round 3",
-    "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%203_U18Boys.pdf?v=new",
-    "age_minutes": 627,
+    "status": "current",
+    "last_updated_at": "2026-07-16T09:54:00-05:00",
+    "last_checked_at": "2026-07-16T11:05:23.794883-05:00",
+    "report": "Qualifying Round 4",
+    "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%204_U18Boys.pdf?v=new",
+    "age_minutes": 71,
     "valid_reports": [
       1,
       2,
-      3
+      3,
+      4
     ]
   },
   "equipment": {
