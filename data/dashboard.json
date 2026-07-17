@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-16T18:13:40.211871-05:00",
+  "updated_at": "2026-07-16T19:14:58.771850-05:00",
   "current": {
-    "position": 565,
+    "position": 546,
     "total": 2905,
     "average": 181.56,
     "games_complete": 16,
-    "pins_from_cut": -214,
+    "pins_from_cut": -320,
     "needed_average": null,
     "field_size": 915,
-    "projected_cut_average": 194.94
+    "projected_cut_average": 201.56
   },
   "blocks": [
     {
@@ -221,6 +221,21 @@
       "needed_average": null,
       "projected_cut_total": 3119,
       "cut_pace_average": 194.94
+    },
+    {
+      "observed_at": "2026-07-16T19:14:58.771850-05:00",
+      "source_updated_at": "2026-07-16T18:51:00-05:00",
+      "report": "Qualifying Round 4",
+      "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%204_U18Boys.pdf?v=new",
+      "games_complete": 16,
+      "position": 546,
+      "field_size": 915,
+      "total": 2905,
+      "average": 181.56,
+      "pins_from_cut": -320,
+      "needed_average": null,
+      "projected_cut_total": 3225,
+      "cut_pace_average": 201.56
     }
   ],
   "year_comparison": {
@@ -391,7 +406,48 @@
       ]
     },
     {
-      "rank": 206,
+      "rank": 207,
+      "tied": true,
+      "name": "Braxton Nguyen",
+      "hometown": "Birmingham, AL",
+      "games_complete": 12,
+      "total": 2349,
+      "average": 195.75,
+      "blocks": [
+        {
+          "round": 1,
+          "games": [
+            165,
+            175,
+            206,
+            210
+          ],
+          "total": 756
+        },
+        {
+          "round": 2,
+          "games": [
+            154,
+            188,
+            170,
+            211
+          ],
+          "total": 723
+        },
+        {
+          "round": 3,
+          "games": [
+            201,
+            197,
+            226,
+            246
+          ],
+          "total": 870
+        }
+      ]
+    },
+    {
+      "rank": 208,
       "tied": true,
       "name": "Parker Young",
       "hometown": "Mobile, AL",
@@ -442,48 +498,7 @@
       ]
     },
     {
-      "rank": 207,
-      "tied": true,
-      "name": "Braxton Nguyen",
-      "hometown": "Birmingham, AL",
-      "games_complete": 12,
-      "total": 2349,
-      "average": 195.75,
-      "blocks": [
-        {
-          "round": 1,
-          "games": [
-            165,
-            175,
-            206,
-            210
-          ],
-          "total": 756
-        },
-        {
-          "round": 2,
-          "games": [
-            154,
-            188,
-            170,
-            211
-          ],
-          "total": 723
-        },
-        {
-          "round": 3,
-          "games": [
-            201,
-            197,
-            226,
-            246
-          ],
-          "total": 870
-        }
-      ]
-    },
-    {
-      "rank": 314,
+      "rank": 317,
       "tied": true,
       "name": "Seth Wilson",
       "hometown": "Elmore, AL",
@@ -534,8 +549,8 @@
       ]
     },
     {
-      "rank": 362,
-      "tied": false,
+      "rank": 361,
+      "tied": true,
       "name": "Ryan Best",
       "hometown": "Deatsville, AL",
       "games_complete": 16,
@@ -626,7 +641,7 @@
       ]
     },
     {
-      "rank": 496,
+      "rank": 478,
       "tied": false,
       "name": "Richard D Hoskinson",
       "hometown": "Northport, AL",
@@ -677,7 +692,7 @@
       ]
     },
     {
-      "rank": 565,
+      "rank": 546,
       "tied": false,
       "name": "Jack Wix",
       "hometown": "Cullman, AL",
@@ -851,7 +866,7 @@
       ]
     },
     {
-      "rank": 793,
+      "rank": 775,
       "tied": true,
       "name": "Ryan D Simpson",
       "hometown": "Hartselle, AL",
@@ -902,8 +917,8 @@
       ]
     },
     {
-      "rank": 832,
-      "tied": false,
+      "rank": 824,
+      "tied": true,
       "name": "Sir Connor",
       "hometown": "Phenix City, AL",
       "games_complete": 16,
@@ -953,7 +968,7 @@
       ]
     },
     {
-      "rank": 848,
+      "rank": 838,
       "tied": true,
       "name": "James F Simpson",
       "hometown": "Hartselle, AL",
@@ -1020,12 +1035,12 @@
     }
   },
   "source_status": {
-    "status": "delayed",
-    "last_updated_at": "2026-07-16T14:32:00-05:00",
-    "last_checked_at": "2026-07-16T18:13:40.211871-05:00",
+    "status": "current",
+    "last_updated_at": "2026-07-16T18:51:00-05:00",
+    "last_checked_at": "2026-07-16T19:14:58.771850-05:00",
     "report": "Qualifying Round 4",
     "source_url": "https://scores.bowl.com/2026-JG/Qualifying_Round%204_U18Boys.pdf?v=new",
-    "age_minutes": 221,
+    "age_minutes": 23,
     "valid_reports": [
       1,
       2,
@@ -1105,17 +1120,17 @@
     "label": "Top 131 confirmed",
     "title": "The advancement cut is confirmed at 131st place",
     "explanation": "The number of U18 Boys advancing after 16 qualifying games is confirmed at 131. The final score needed is not known until Round 4 is complete, so the dashboard projects that score from the live 131st-place pace.",
-    "gap_basis": "Jack is compared with the current 131st-place score of 3119 after 16 games",
-    "needed_average_basis": "Current-pace target of 3119 pins; Jack needs 214 over 0 games",
+    "gap_basis": "Jack is compared with the current 131st-place score of 3225 after 16 games",
+    "needed_average_basis": "Current-pace target of 3225 pins; Jack needs 320 over 0 games",
     "warning": "The top-131 position is confirmed. The score needed to hold 131st remains a live planning estimate until qualifying ends.",
     "advancing_place": 131,
-    "current_score": 3119,
-    "projected_final_total": 3119,
+    "current_score": 3225,
+    "projected_final_total": 3225,
     "games_basis": 16,
-    "published_bowlers": 451,
+    "published_bowlers": 685,
     "remaining_plan": {
       "remaining_games": 0,
-      "remaining_pins": 214,
+      "remaining_pins": 320,
       "remaining_blocks": 0,
       "block_targets": [],
       "needed_average": null
